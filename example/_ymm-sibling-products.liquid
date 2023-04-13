@@ -1,0 +1,87 @@
+{% comment %}
+Renders product siblings selector
+
+Accepts:
+- product: Product object
+
+Usage:
+> {%- render '_ymm-sibling-products', product: product -%}
+{% endcomment %}
+
+{%- liquid
+  assign sibling_group = null
+
+  for tag in product.tags
+    assign parts = tag | split: ':'
+    assign prefix = parts[0]
+    if parts.size > 1 and prefix == '_GROUP'
+      assign sibling_group = tag | replace_first: '_GROUP:', ''
+      break
+    endif
+  endfor
+
+  assign namespace_keys = 'wspec.style//wspec.finish//wspec.size//wspec.pcd//wspec.offset//wspec.bore' | split: '//'
+
+  assign form_uid = 'now' | date: '%N'
+  assign form_uid = 'product_siblings_' | append: form_uid
+
+  assign root_url =  'https://' | append: shop.domain | append: routes.root_url
+  assign root_url_last_char = root_url | slice: -1, 1
+  if root_url_last_char == '/'
+    assign root_url_index = root_url.size | minus: 1
+    assign root_url = root_url | slice: 0, root_url_index
+  endif
+-%}
+
+{% comment %}
+Custom element tag: `x-product-siblings`
+Attributes:
+> dehydrated        - Removed after the widget is loaded
+> group             - Product sibling group
+> root-url          - Store's root url - locale aware
+> section-id        - Main product section id so we could fetch the info later
+> pid               - Initial product URL
+{% endcomment %}
+
+
+<x-product-siblings
+  group="{{ sibling_group }}"
+  pid="{{ product.id }}"
+  section-id="{{ section.id }}"
+  root-url="{{ root_url }}">
+  <p>
+    Style:
+    <strong>{{ sibling_group }}</strong>
+  </p>
+
+  {%- for namespace_key in namespace_keys -%}
+    {% liquid
+      assign parts = namespace_key | split: '.'
+      assign namespace = parts[0]
+      assign key = parts[1]
+      assign metafield = product.metafields[namespace][key]
+      assign mf_value = metafield.value
+      assign field_uid = 'now' | date: '%N'
+    %}
+    <div {% if forloop.first %}hidden{% endif %}>
+      <label for="{{ field_uid }}">{{ key }}</label>
+      <select
+        form="{{ form_uid }}"
+        key="{{ key }}"
+        id="{{ field_uid }}">
+        {% comment %} <option value="">Select {{ key }}</option> {% endcomment %}
+        <option value="{{ mf_value }}" selected>{{ mf_value }}</option>
+      </select>
+    </div>
+  {%- endfor -%}
+</x-product-siblings>
+
+
+{% comment %}
+No need to hydrate if there is no sibling group
+{% endcomment %}<!-- -->
+{%- unless sibling_group -%}
+  {%- break -%}
+{%- endunless -%}
+
+<script src="{{ '_x-product-siblings.js' | asset_url }}" defer="defer"></script>

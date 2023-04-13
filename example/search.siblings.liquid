@@ -1,0 +1,63 @@
+{%- layout none -%}
+
+{%- comment -%}
+Return search results in json format
+
+For partial match, append `*` at the end of the term. (Partial match glob only works at the end of the term)
+Example terms:
+  > term
+  > term*
+  > product_tag
+
+Example: 
+  > /search?q=TERM*&view=siblings&type=product&page=1
+  > /search?q=TERM&view=siblings&type=product&page=1
+{%- endcomment -%}
+
+{%- liquid
+  assign namespace_keys = 'wspec.style//wspec.finish//wspec.size//wspec.pcd//wspec.offset//wspec.bore' | split: '//'
+-%}
+
+{%- paginate search.results by 500 -%}
+  [
+
+   {%- if search.results_count > 0 -%}
+    {%- for item in search.results -%}
+       {%- if item.object_type != 'product' -%}{%- continue -%}{%- endif -%}
+        {%- assign product = item -%}
+
+        {
+           "product": {{ product | json }},
+           "metafields": [
+              {%- for namespace_key in namespace_keys -%}
+                {%- assign parts = namespace_key | split: '.' -%}
+                {%- assign namespace = parts[0] -%}
+                {%- assign key = parts[1] -%}
+                {%- assign metafield = product.metafields[namespace][key] -%}
+                {
+                  "namespace": "{{ namespace }}",
+                  "key": "{{ key }}",
+                  "value": {{ metafield.value | json }}
+                }
+                {%- unless forloop.last -%},{%- endunless -%}
+              {%- endfor -%}
+           ],
+           "options": {
+              {%- for namespace_key in namespace_keys -%}
+                {%- assign parts = namespace_key | split: '.' -%}
+                {%- assign namespace = parts[0] -%}
+                {%- assign key = parts[1] -%}
+                {%- assign metafield = product.metafields[namespace][key] -%}
+                  "{{ key }}": {{ metafield.value | json }}
+                {%- unless forloop.last -%},{%- endunless -%}
+              {%- endfor -%}
+              ,
+              "fitment": {{ product.metafields.custom.fitment_list.value | json }}
+           }
+        }
+
+	  {%- unless forloop.last -%},{%- endunless -%}
+    {%- endfor -%}
+   {%- endif -%}
+]
+{%- endpaginate -%}

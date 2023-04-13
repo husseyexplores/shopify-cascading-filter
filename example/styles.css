@@ -1,0 +1,365 @@
+:is(.YMM_Facet, .YMM_Ftmnt) :is([hidden]) { display: none !important; }
+
+/*---------------------------------------------*/
+/* ###### EZSearch Global Widget Styles ###### */
+/*---------------------------------------------*/
+.YMM_Global {
+  --ymm-height: 45px;
+  --ymm-color-bg: var(--colorBrandSec);
+  --ymm-color-text: var(--colorBright);
+  --ymm-color-select-bg: var(--colorBright);
+  --ymm-color-select-text: rgb(var(--color-base-text, 0 0 0));
+  --ymm-color-select-text-hover: #585858;
+  --ymm-btn-primary--bg: rgb(var(--color-button));
+  --ymm-btn-primary--text: rgb(var(--color-button-text));
+
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  position: relative;
+
+  color: var(--ymm-color-text);
+  background-color: var(--ymm-color-bg);
+  min-height: var(--ymm-height);
+}
+.YMM_Global .YMM_Facet {
+  width: 100%;
+}
+.YMM_Global .YMM_Facet, .YMM_Global form {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--ymm-color-bg);
+}
+
+.YMM_Global form {
+  margin-left: 15px;
+}
+
+.YMM_Global form label {
+  display: none;
+}
+
+.YMM_Global .YMM_Widget-title {
+  margin-bottom: 0;
+  background-color: var(--ymm-color-bg);
+  margin: 0;
+}
+.YMM_Widget-title[role="button"] {
+  display: none;
+}
+
+.YMM_Global .YMM_Select-item {
+  margin-right: 3px;
+  min-width: 110px;
+}
+
+.YMM_Global select, .YMM_Global select[disabled] {
+  color: var(--ymm-color-select-text);
+  background-color: var(--ymm-color-select-bg);
+  height: 100%;
+  width: 100%;
+}
+.YMM_Global select:hover,
+.YMM_Global select:active {
+  color: var(--ymm-color-select-text-hover);
+}
+
+.YMM_Global .btn {
+  /* align-self: stretch; */
+  font-size: 15px;
+  padding: 0;
+  line-height: 1.5;
+  background-image: none;
+  display: block;
+  background-color: var(--ymm-btn-primary--bg);
+  color: var( --ymm-btn-primary--text);
+}
+
+.YMM_Global .btn:hover,
+.YMM_Global .btn:active {
+  /* padding: 0;
+  background-image: none;
+  background-color: transparent; */
+}
+
+.YMM_Global .btn[disabled] {
+  color: var(--ymm-color-text);
+  background-color: transparent;
+  opacity: 0.6;
+}
+
+.YMM_Global .btn + .btn {
+  margin-top: 0px;
+  margin-left: 3px;
+}
+
+[data-ymm-autosearch] button[type="submit"] {
+ display: none;
+}
+
+[data-ymm-autosearch][data-ymm-selected-filters="all"] button[type="submit"] {
+  display: block;
+}
+[data-collection-template][data-ymm-autosearch] button[type="submit"],
+[data-ymm-navigating] [data-ymm-selected-filters="all"] form button[data-ymm-goto-base-collection],
+[data-ymm-navigating] [data-ymm-autosearch][data-ymm-selected-filters="all"] button[type="submit"] {
+  display: none;
+}
+
+[data-ymm-form] button[data-ymm-goto-base-collection] {
+  display: none;
+}
+[data-ymm-selected-filters="all"] form button[data-ymm-goto-base-collection] {
+  display: block;
+}
+
+@media(max-width: 768px) {
+ .YMM_Global .YMM_Facet {
+   flex-grow: 1;
+ }
+
+ .YMM_Global form {
+   flex-direction: column;
+   justify-content: center;
+   margin-bottom: 3px;
+   padding: 0px 15px;
+ }
+
+ .YMM_Global form {
+   margin-left: 0px;
+   visibility: hidden;
+   position: absolute;
+   width: 100%;
+   top: var(--ymm-height);
+   transition: all 0.3s ease;
+   transform: translateY(-100%);
+   margin-left: 0;
+   z-index: 1;
+ }
+
+ .YMM_Global .YMM_Facet.is-open form {
+   visibility: visible;
+   transform: translateY(0%);
+ }
+
+ .YMM_Global .YMM_Widget-title {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    position: relative;
+    height: 100%;
+    flex-grow: 1;
+    z-index: 2;
+ }
+
+
+  .YMM_Widget-title:not([role="button"]) {
+    display: none;
+  }
+  .YMM_Widget-title[role="button"] {
+    display: inline-flex;
+    cursor: pointer;
+  }
+
+ .YMM_Global .YMM_Widget-title::after {
+   content: '';
+   background-image: url(//cdn.shopify.com/s/files/1/0562/5685/6217/t/15/assets/ico-select-white.svg?v=15629901103860111430);
+   width: 16px;
+   height: 10px;
+   right: 22px;
+   position: absolute;
+   background-size: 15px;
+   background-repeat: no-repeat;
+   transition: transform 0.3s;
+ }
+ .YMM_Global .YMM_Facet.is-open .YMM_Widget-title::after {
+   transform: rotate(180deg);
+ }
+
+ .YMM_GLobal select,
+ .YMM_Global .btn {
+   padding-top: 0;
+   padding-bottom: 0;
+   height: 35px;
+ }
+
+ .YMM_Global .YMM_Select-item {
+   margin-right: 0px;
+   margin-bottom: 12px;
+   width: 100%;
+ }
+
+ .YMM_Global .btn {
+   margin-bottom: 12px;
+ }
+ .YMM_Global .btn + .btn {
+   margin-top: 3px;
+   margin-left: 0px;
+ }
+}
+
+/*---------------------------------------------*/
+/* ###### EZSearch Fitment Widget Styles ##### */
+/*---------------------------------------------*/
+@keyframes ymm_skeleton {
+  from {
+    background-position: 100% 0%;
+  }
+  to {
+    background-position: -100% 0%;
+  }
+}
+@keyframes ymm_fade_in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.YMM_Ftmnt-facet {
+  position: relative;
+  animation: ezs_fade_in 0.15s ease-in;
+}
+.YMM_Ftmnt-facet::after {
+  content: "";
+  background-image: linear-gradient(90deg, #e4e7eb, #ffffff, #e4e7eb);
+  background-size: 200% 100%;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  animation-name: ezs_skeleton;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+.YMM_Ftmnt-results {
+  animation: ezs_fade_in 0.15s ease-in;
+}
+
+.YMM_Ftmnt {
+  position: relative;
+  max-height: 85px;
+  overflow: hidden;
+}
+.YMM_Ftmnt:not([dehydrated]) {
+  max-height: 100%;
+}
+.YMM_Ftmnt:not([dehydrated]) .YMM_Ftmnt-facet::after {
+  display: none;
+}
+
+.YMM_Ftmnt :where(.YMM_Ftmnt-results) {
+  display: none;
+}
+
+.YMM_Ftmnt:is([state~="fits"], [state~="unfits"]):is([showing="result"]) .YMM_Ftmnt-results {
+  display: block;
+}
+.YMM_Ftmnt:is([state~="fits"], [state~="unfits"]):is([showing="result"]) .YMM_Ftmnt-facet {
+  display: none;
+}
+
+.YMM_Ftmnt .YMM_Ftmnt-result--good,
+.YMM_Ftmnt .YMM_Ftmnt-result--bad {
+  display: none;
+}
+.YMM_Ftmnt[state~="fits"] .YMM_Ftmnt-result--good {
+  display: block;
+}
+.YMM_Ftmnt[state~="unfits"] .YMM_Ftmnt-result--bad {
+  display: block;
+}
+
+.YMM_Ftmnt-result-content {
+  --ymm-ftmnt-icon: 32px;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-gap: 15px;
+  padding: 10px;
+  border: 1px solid var(--ymm-color-icon-bg);
+}
+.YMM_Inline-btn {
+  padding: 0;
+}
+
+.YMM_Ftmnt-result--good {
+  --ymm-color-icon-bg: #55c63a;
+  --ymm-color-icon: #fff;
+}
+
+.YMM_Ftmnt-result--bad {
+  --ymm-color-icon-bg: #cc0000;
+  --ymm-color-icon: #fff;
+}
+
+.YMM_Ftmnt-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--ymm-color-icon-bg);
+  align-self: baseline;
+  height: 40px;
+  width: 40px;
+}
+.YMM_Ftmnt-icon svg {
+  width: var(--ymm-ftmnt-icon);
+  height: var(--ymm-ftmnt-icon);
+  fill: var(--ymm-color-icon);
+}
+
+.YMM_Ftmnt-result-bottom {
+  margin-top: 10px;
+}
+.YMM_Ftmnt-result-bottom [data-ymm-filtered-link] {
+  text-decoration: underline;
+}
+
+.YMM_Ftmnt-result-title {
+  margin-top: 0;
+  margin-bottom: 0px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ymm-color-icon-bg);
+  margin-bottom: 5px;
+}
+.YMM_Inline-btn {
+  text-transform: initial;
+}
+.YMM_Inline-btn[data-ymm-goto-pending] {
+  color: var(--ymm-color-icon-bg);
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.YMM_Ftmnt-col--right > * + * {
+  margin-top: 5px;
+}
+
+.YMM_Ftmnt-result-footer {
+  margin-top: 8px;
+}
+.YMM_Ftmnt-facet label {
+  display: none;
+}
+.YMM_Ftmnt-facet select {
+  width: 100%;
+}
+.YMM_Ftmnt-facet .YMM_Select-item {
+  margin-bottom: 8px;
+}
+.YMM_Ftmnt-facet [data-ymm-trigger-verify]{
+  width: 100%;
+  display: block;
+}
+.YMM_Ftmnt-result a[data-ymm-filtered-link] {
+  text-decoration: underline;
+}

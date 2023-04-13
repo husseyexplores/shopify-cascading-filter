@@ -1,0 +1,65 @@
+{% comment %}
+Renders Filter object as JSON 
+
+Accepts:
+- filter: Filter object
+
+Usage:
+> {%- render '_ymm-filter-json', filter: filter -%}
+{% endcomment %}
+
+{%- liquid
+ unless filter
+   break
+ endunless
+-%}
+{
+  "active_values": [
+    {%- for value in filter.active_values -%}
+      {
+        "active": {{ value.active | json }},
+        "count": {{ value.count | json }},
+        "label": {{ value.label | json }},
+        "param_name": {{ value.param_name | json }},
+        "url_to_add": {{ value.url_to_add | json }},
+        "url_to_remove": {{ value.url_to_remove | json }},
+        "value": {{ value.value | json }}
+      }{%- unless forloop.last -%},{%- endunless-%}
+    {%- endfor -%}
+  ],
+  "values": [
+    {%- for value in filter.values -%}
+      {
+        "active": {{ value.active | json }},
+        "count": {{ value.count | json }},
+        "label": {{ value.label | json }},
+        "param_name": {{ value.param_name | json }},
+        "url_to_add": {{ value.url_to_add | json }},
+        "url_to_remove": {{ value.url_to_remove | json }},
+        "value": {{ value.value | json }}
+      }{%- unless forloop.last -%},{%- endunless-%}
+    {%- endfor -%}
+  ],
+  "inactive_values": [
+    {%- for value in filter.inactive_values -%}
+      {
+        "active": {{ value.active | json }},
+        "count": {{ value.count | json }},
+        "label": {{ value.label | json }},
+        "param_name": {{ value.param_name | json }},
+        "url_to_add": {{ value.url_to_add | json }},
+        "url_to_remove": {{ value.url_to_remove | json }},
+        "value": {{ value.value | json }}
+      }{%- unless forloop.last -%},{%- endunless-%}
+    {%- endfor -%}
+  ],
+  "false_value": {{ filter.label | json }},
+  "label": {{ filter.label | json }},
+  "max_value": {{ filter.max_value | json }},
+  "min_value": {{ filter.min_value | json }},
+  "param_name": {{ filter.param_name | json }},
+  "range_max": {{ filter.range_max | json }},
+  "true_value": {{ filter.true_value | json }},
+  "type": {{ filter.type | json }},
+  "url_to_remove": {{ filter.url_to_remove | json }}
+}

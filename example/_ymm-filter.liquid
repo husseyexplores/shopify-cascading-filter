@@ -1,0 +1,257 @@
+{% comment %}
+Renders YMM facet
+
+Accepts:
+- results?: {Object} Collection or Search object (defaults to `all` collection)
+- type: "FACET" | "FITMENT"
+- product: Product object (required if type is `FITMENT`)
+
+Usage:
+> {% render '_ymm-facet', results: collection, type: 'FACET' %}
+> {% render '_ymm-facet', results: search, type: 'FACET' %}
+> {% render '_ymm-facet', type: 'FACET' %}
+> {% render '_ymm-facet', type: 'FITMENT' %}
+{% endcomment %}
+
+{%- assign YMM_NAMESPACE_KEY = 'custom.fitment_list' -%}
+
+{%- liquid
+  unless results
+    assign results = collection | default: search | default: collections['all']
+  endunless
+
+  assign filters = results.filters
+    unless filters
+    break
+  endunless
+
+  assign ymm_filter_param_name = 'filter.p.m.' | append: YMM_NAMESPACE_KEY
+  assign ymm_filter = false
+  for filter in filters
+    if filter.param_name == ymm_filter_param_name
+      assign ymm_filter = filter
+      break
+    endif
+  endfor
+
+  if ymm_filter == false
+    break
+  endif
+
+  assign collection_handle = collection_handle | default: collection.handle | default: 'all'
+  assign root_url =  'https://' | append: shop.domain | append: routes.root_url
+  assign root_url_last_char = root_url | slice: -1, 1
+  if root_url_last_char == '/'
+    assign root_url_index = root_url.size | minus: 1
+    assign root_url = root_url | slice: 0, root_url_index
+  endif
+
+  assign ymm_filter_applied = false
+  if ymm_filter.active_values.size > 0
+    assign ymm_filter_applied = true
+  endif
+-%}{{ '_ymm-facet.css' | asset_url | stylesheet_tag }}<script
+  src="{{ '_ymm-facet.es.js' | asset_url }}"
+  defer="defer"
+  type="module"></script>
+
+{%- capture filter_json_script -%}
+  <script type="application/json" data-filter-json>{%- render '_ymm-filter-json', filter: ymm_filter -%}</script>
+{%- endcapture -%}
+
+{% comment %}
+Custom element tag: `x-ymm-filter`
+Attributes:
+> dehydrated        - Removed after the widget is loaded
+> state             - 'none pending' | 'partial pending' | 'selected' | 'selected fits' | 'selected unfits'
+> root-url          - Store's root url - locale aware
+> auto-submit       - Auto submits the form when the selection is made
+> collection-handle - Current collection handle
+> showing           - 'facet' | 'result'
+> fits              - Product fitment metafield JSON
+{% endcomment %}
+
+{%- if type == 'FACET' -%}
+  <x-ymm-filter
+    class="YMM_Facet"
+    dehydrated
+    state="none pending"
+    root-url="{{ root_url }}"
+    auto-submit
+    showing="facet"
+    collection-handle="{{ collection_handle }}">
+
+    {{ filter_json_script }}
+
+    <h6 class="h4 YMM_Widget-title">Search By Vehicle</h6>
+    <form>
+      <div class="YMM_Select-item">
+        <label>Year</label>
+        <select
+          disabled
+          key="year"
+          sort="desc"
+          ranged
+          max-range="{{ 'now' | date: "%Y" }}"
+          step="1"
+          numeric>
+          <option value="">Year</option>
+        </select>
+      </div>
+
+      <div class="YMM_Select-item">
+        <label>Make</label>
+        <select disabled key="make">
+          <option value="">Make</option>
+        </select>
+      </div>
+
+      <div class="YMM_Select-item">
+        <label>Model</label>
+        <select disabled key="model">
+          <option value="">Model</option>
+        </select>
+      </div>
+
+      <a
+        class="btn"
+        data-clear-cache
+        href="{{ ymm_filter.url_to_remove }}"
+        {%- if ymm_filter_applied == false -%}hidden{%- endif -%}>Clear</a>
+
+      <button
+        type="submit"
+        class="btn"
+        disabled
+        loading-class="btn--loading">Search</button>
+    </form>
+  </x-ymm-filter>
+
+  {%- break -%}
+{%- endif -%}
+
+{%- comment -%}
+---------------------------
+Render fitment
+---------------------------
+{%- endcomment -%}
+
+{%- if type == 'FITMENT' -%}
+  {%- liquid
+    unless product
+      break
+    endunless
+
+    assign FITMENT_NS_PARTS = YMM_NAMESPACE_KEY | split: '.'
+    assign FITMENT_NAMESAPCE = FITMENT_NS_PARTS[0]
+    assign FITMENT_KEY = FITMENT_NS_PARTS[1]
+    assign fitment_list = product.metafields[FITMENT_NAMESAPCE][FITMENT_KEY].value
+  -%}
+
+  <x-ymm-filter
+    class="YMM_Ftmnt"
+    dehydrated
+    state="none pending"
+    root-url="{{ root_url }}"
+    showing="facet"
+    auto-submit
+    {% if product %}fits='{{ fitment_list | json }}'{% endif %}>
+
+    {{ filter_json_script }}
+
+    <div class="YMM_Selects YMM_Ftmnt-facet">
+      <div class="YMM_Select-item">
+        <label>Year</label>
+        <select
+          disabled
+          key="year"
+          sort="desc"
+          ranged
+          max-range="{{ 'now' | date: "%Y" }}"
+          step="1"
+          numeric>
+          <option value="">Year</option>
+        </select>
+      </div>
+
+      <div class="YMM_Select-item">
+        <label>Make</label>
+        <select disabled key="make">
+          <option value="">Make</option>
+        </select>
+      </div>
+
+      <div class="YMM_Select-item">
+        <label>Model</label>
+        <select disabled key="model">
+          <option value="">Model</option>
+        </select>
+      </div>
+
+      <button
+        type="button"
+        class="btn"
+        data-update-show="result">Verify</button>
+    </div>
+
+    <div class="YMM_Ftmnt-results">
+      <!-- Good Result -->
+      <div class="YMM_Ftmnt-result YMM_Ftmnt-result--good">
+        <div class="YMM_Ftmnt-result-content">
+          <div class="YMM_Ftmnt-col--left">
+            <div class="YMM_Ftmnt-icon">
+              <svg
+                width="18"
+                viewBox="-3 -3 24 24"
+                data-viewBox="0 0 18 18">
+                <path d="M16.145,2.571c-0.272-0.273-0.718-0.273-0.99,0L6.92,10.804l-4.241-4.27 c-0.272-0.274-0.715-0.274-0.989,0L0.204,8.019c-0.272,0.271-0.272,0.717,0,0.99l6.217,6.258c0.272,0.271,0.715,0.271,0.99,0 L17.63,5.047c0.276-0.273,0.276-0.72,0-0.994L16.145,2.571z" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="YMM_Ftmnt-col--right">
+            <h4 class="YMM_Ftmnt-result-title">FITS YOUR:
+            </h4>
+            <div data-filtered-title></div>
+
+            <button
+              class="YMM_Inline-btn"
+              type="button"
+              data-update-show="facet">(Change vehicle)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bad Result -->
+      <div class="YMM_Ftmnt-result YMM_Ftmnt-result--bad">
+        <div class="YMM_Ftmnt-result-content">
+          <div class="YMM_Ftmnt-icon">
+            <svg width="18" viewBox="0 0 512 512">
+              <path d="M289.94,256l95-95A24,24,0,0,0,351,127l-95,95-95-95A24,24,0,0,0,127,161l95,95-95,95A24,24,0,1,0,161,385l95-95,95,95A24,24,0,0,0,385,351Z" />
+            </svg>
+          </div>
+
+          <div>
+            <h4 class="YMM_Ftmnt-result-title">DOES NOT FIT YOUR:
+            </h4>
+            <div data-filtered-title></div>
+
+            <button
+              class="YMM_Inline-btn"
+              type="button"
+              data-update-show="facet">(Change vehicle)</button>
+          </div>
+        </div>
+
+        <div class="YMM_Ftmnt-result-footer">
+          <a href="#" data-action-url>
+            Find products that fit your vehicle
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </x-ymm-filter>
+
+  {%- break -%}
+{%- endif -%}
