@@ -283,19 +283,6 @@ export class ProductSiblings extends HTMLElement {
   }
 }
 
-// Cache the fetched siblings
-// ProductSiblings.siblingsUrlCache = Object.create(null)
-// ProductSiblings.fetchSiblings = group => {
-//   const cached = ProductSiblings.siblingsUrlCache[group]
-//   if (cached) {
-//     return cached instanceof Promise ? cached : Promise.resolve(cached)
-//   }
-
-//   const promise = getSiblings(group)
-//   ProductSiblings.siblingsUrlCache[group] = promise
-//   return promise
-// }
-
 function fetchSiblings(group) {
   if (!group) {
     return Promise.reject(
