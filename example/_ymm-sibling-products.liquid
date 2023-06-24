@@ -1,4 +1,4 @@
-{% comment %}
+{%- comment -%}
 Renders product siblings selector
 
 Accepts:
@@ -6,7 +6,7 @@ Accepts:
 
 Usage:
 > {%- render '_ymm-sibling-products', product: product -%}
-{% endcomment %}
+{%- endcomment -%}
 
 {%- liquid
   assign sibling_group = null
@@ -33,7 +33,7 @@ Usage:
   endif
 -%}
 
-{% comment %}
+{%- comment -%}
 Custom element tag: `x-product-siblings`
 Attributes:
 > dehydrated        - Removed after the widget is loaded
@@ -41,7 +41,7 @@ Attributes:
 > root-url          - Store's root url - locale aware
 > section-id        - Main product section id so we could fetch the info later
 > pid               - Initial product URL
-{% endcomment %}
+{%- endcomment -%}
 
 
 <x-product-siblings

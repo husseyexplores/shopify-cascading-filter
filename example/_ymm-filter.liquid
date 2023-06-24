@@ -7,10 +7,10 @@ Accepts:
 - product: Product object (required if type is `FITMENT`)
 
 Usage:
-> {% render '_ymm-facet', results: collection, type: 'FACET' %}
-> {% render '_ymm-facet', results: search, type: 'FACET' %}
-> {% render '_ymm-facet', type: 'FACET' %}
-> {% render '_ymm-facet', type: 'FITMENT' %}
+> {% render '_ymm-filter', results: collection, type: 'FACET' %}
+> {% render '_ymm-filter', results: search, type: 'FACET' %}
+> {% render '_ymm-filter', type: 'FACET' %}
+> {% render '_ymm-filter', type: 'FITMENT' %}
 {% endcomment %}
 
 {%- assign YMM_NAMESPACE_KEY = 'custom.fitment_list' -%}
