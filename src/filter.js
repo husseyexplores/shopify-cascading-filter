@@ -4,7 +4,7 @@ import { isObject, getNumberRange, toNumber, filterUntil } from './utils'
 export const SYM_KEYS = Symbol('OBJECT_KEYS')
 export const SYM_DEPTH = Symbol('OBJECT_DEPTH')
 
-export const getTreeOptions = tree => tree[SYM_KEYS] ?? null
+export const getTreeOptions = tree => tree ? tree[SYM_KEYS] : null
 const isValidValue = x => x != null && x !== ''
 
 /**
@@ -123,14 +123,16 @@ export function createFiltersTree({
 
           const desc = keys[levelIndex]?.sort === 'desc'
 
-          Object.defineProperty(obj, SYM_KEYS, {
-            value: objKeys.sort((a, b) =>
-              desc ? b.localeCompare(a) : a.localeCompare(b)
-            ),
-            configurable: false,
-            writable: false,
-            enumerable: false,
-          })
+          if (!obj[SYM_KEYS]) {
+            Object.defineProperty(obj, SYM_KEYS, {
+              value: objKeys.sort((a, b) =>
+                desc ? b.localeCompare(a) : a.localeCompare(b)
+              ),
+              configurable: false,
+              writable: false,
+              enumerable: false,
+            })
+          } 
         })
       : res
 

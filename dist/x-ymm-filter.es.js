@@ -214,14 +214,16 @@ function createFiltersTree({
   const tree = Object.keys(res).length > 0 ? iterateOverTree(res, (obj, objKeys, levelIndex) => {
     var _a;
     const desc = ((_a = keys[levelIndex]) == null ? void 0 : _a.sort) === "desc";
-    Object.defineProperty(obj, SYM_KEYS, {
-      value: objKeys.sort(
-        (a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)
-      ),
-      configurable: false,
-      writable: false,
-      enumerable: false
-    });
+    if (!obj[SYM_KEYS]) {
+      Object.defineProperty(obj, SYM_KEYS, {
+        value: objKeys.sort(
+          (a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)
+        ),
+        configurable: false,
+        writable: false,
+        enumerable: false
+      });
+    }
   }) : res;
   return tree;
 }
@@ -243,13 +245,13 @@ function getAllKeysFromElement(element) {
     const key = (_a = el.getAttribute("key")) == null ? void 0 : _a.trim();
     if (key && !stash.has(key)) {
       let sort = (
-        /** @type {ElKey["sort"]} */
+        /** @type {KeyParsed["sort"]} */
         (_b = el.getAttribute("sort")) == null ? void 0 : _b.trim()
       );
       if (sort !== "desc")
         sort = "asc";
       let ranged = (
-        /** @type {ElKey["ranged"]} */
+        /** @type {KeyParsed["ranged"]} */
         el.hasAttribute("ranged")
       );
       const maxRange = toNumber((_c = el.getAttribute("max-range")) == null ? void 0 : _c.trim(), {
@@ -366,6 +368,7 @@ function set(key, value, expirySeconds = Infinity) {
   window.localStorage.setItem(expiryKey(_key), expiry);
   return true;
 }
+const _FD_ = "_";
 const ELEMENT_TAG = "x-ymm-filter";
 const treeify = memoize(treeify$1);
 class YMM_Filter extends HTMLElement {
@@ -526,7 +529,7 @@ class YMM_Filter extends HTMLElement {
         return tree2[value];
       }, this.tree);
       if (!tree) {
-        const err = `Unable to find the inner tree while updating select value`;
+        const err = `Unable to find the inner tree while updating select value. Value might be incorrect.`;
         this.logger.error(err, {
           selectIndex,
           tree,
@@ -782,11 +785,11 @@ YMM_Filter.state = {
   SELECTED_UNFITS: "selected unfits"
 };
 YMM_Filter.parsefitmentInfoByKeys = (keys, fitment) => {
-  const parts = fitment.split("_");
+  const parts = fitment.split(_FD_);
   const info = keys.reduce((acc, k, i2) => {
     acc[k.key] = parts[i2];
     return acc;
-  }, {});
+  }, /* @__PURE__ */ Object.create(null));
   return { info, value: fitment };
 };
 YMM_Filter.tag = ELEMENT_TAG;

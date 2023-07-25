@@ -283,14 +283,16 @@ function createFiltersTree({
   const tree = Object.keys(res).length > 0 ? iterateOverTree(res, (obj, objKeys, levelIndex) => {
     var _a;
     const desc = ((_a = keys[levelIndex]) == null ? void 0 : _a.sort) === "desc";
-    Object.defineProperty(obj, SYM_KEYS, {
-      value: objKeys.sort(
-        (a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)
-      ),
-      configurable: false,
-      writable: false,
-      enumerable: false
-    });
+    if (!obj[SYM_KEYS]) {
+      Object.defineProperty(obj, SYM_KEYS, {
+        value: objKeys.sort(
+          (a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)
+        ),
+        configurable: false,
+        writable: false,
+        enumerable: false
+      });
+    }
   }) : res;
   return tree;
 }
@@ -312,13 +314,13 @@ function getAllKeysFromElement(element) {
     const key = (_a = el.getAttribute("key")) == null ? void 0 : _a.trim();
     if (key && !stash.has(key)) {
       let sort = (
-        /** @type {ElKey["sort"]} */
+        /** @type {KeyParsed["sort"]} */
         (_b = el.getAttribute("sort")) == null ? void 0 : _b.trim()
       );
       if (sort !== "desc")
         sort = "asc";
       let ranged = (
-        /** @type {ElKey["ranged"]} */
+        /** @type {KeyParsed["ranged"]} */
         el.hasAttribute("ranged")
       );
       const maxRange = toNumber((_c = el.getAttribute("max-range")) == null ? void 0 : _c.trim(), {
@@ -407,7 +409,7 @@ class ReactiveFilterTree {
   /**
    *
    * @param {{
-   *   keys: ElKey[]
+   *   keys: KeyParsed[]
    *   list: T[]
    *   itemToInfo: (value: T) => ItemWithInfo
    *   onOptionsChange: (selection: PossibleSelection) => *

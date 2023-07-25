@@ -27,6 +27,14 @@ let builds = [
       formats: ['es'],
     },
   },
+  // helper 
+  {
+    lib: {
+      entry: path.resolve(__dirname, './src/treeify.js'),
+      name: '__treeify',
+      formats: ['es'],
+    },
+  },
 ]
 
 builds = [
