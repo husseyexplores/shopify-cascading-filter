@@ -173,9 +173,7 @@ function getParsedAttributes(element, attributes) {
         continue;
       }
       if (Number.isNaN(parsed)) {
-        errors.push(
-          new Error(`Invalid ${attrKey} attribute (NaN): ${rawValue}`)
-        );
+        errors.push(new Error(`Invalid ${attrKey} attribute (NaN): ${rawValue}`));
         continue;
       }
       result[key] = parsed;
@@ -187,31 +185,40 @@ function getParsedAttributes(element, attributes) {
   }
   return result;
 }
-function fetchJson(url) {
+function fetchJson(url, fetchConfig) {
   return fetch(url, {
     headers: {
       accept: "application/json"
-    }
+    },
+    ...fetchConfig
   }).then((r) => r.json());
 }
 const htmlParser = new DOMParser();
-function fetchHtml(url) {
-  return fetch(url).then((r) => r.text()).then((htmlText) => htmlParser.parseFromString(htmlText, "text/html"));
+function fetchHtml(url, fetchConfig) {
+  return fetch(url, fetchConfig).then((r) => r.text()).then((htmlText) => htmlParser.parseFromString(htmlText, "text/html"));
 }
-function memoize(fn) {
+function memoize(fn, memoizedArgsIndices) {
   const CACHE = /* @__PURE__ */ new Map();
   return (...args) => {
-    const key = o(args);
+    const key = o(
+      typeof memoizedArgsIndices === "number" ? args.slice(0, memoizedArgsIndices + 1) : args
+    );
     if (CACHE.has(key)) {
       return CACHE.get(key);
     }
     const result = fn(...args);
+    if (result instanceof Promise) {
+      result.catch((e) => {
+        CACHE.delete(key);
+        throw e;
+      });
+    }
     CACHE.set(key, result);
     return result;
   };
 }
 const M = {
-  fetchHtml: memoize(fetchHtml),
+  fetchHtml: memoize(fetchHtml, 0),
   fetchJson: memoize(fetchJson)
 };
 function removeTrailingSlash(url) {
@@ -562,7 +569,7 @@ class ReactiveFilterTree {
 const ELEMENT_TAG = "x-product-siblings";
 const GROUP_TAG_PREFIX = "_GROUP:";
 class ProductSiblings extends HTMLElement {
-  connectedCallback() {
+  async connectedCallback() {
     var _a;
     if (!this.isConnected)
       return;
@@ -596,7 +603,7 @@ class ProductSiblings extends HTMLElement {
       }
     });
     this._dispatchEvent("loading");
-    this._setupSiblings();
+    await this._setupSiblings();
     this._hydrated = true;
     this.removeAttribute("dehydrated");
     this._dispatchEvent("loaded");
@@ -614,39 +621,18 @@ class ProductSiblings extends HTMLElement {
     this.siblings = siblings;
     const cont = this.closest(".product");
     const info = cont == null ? void 0 : cont.querySelector("product-info");
-    const priceCont = info == null ? void 0 : info.querySelector(".price__container");
+    info == null ? void 0 : info.querySelector(".price__container");
     const mediaGallery = cont == null ? void 0 : cont.querySelector("media-gallery");
-    const mediaList = mediaGallery == null ? void 0 : mediaGallery.querySelector(".product__media-list");
-    const fitmentWidget = info == null ? void 0 : info.querySelector("x-ymm-filter.YMM_Ftmnt");
-    const el = {
-      title: info == null ? void 0 : info.querySelector(".product__title h1"),
-      priceCont,
-      price: priceCont == null ? void 0 : priceCont.querySelector(".price-item.price-item--regular"),
-      cprice: priceCont == null ? void 0 : priceCont.querySelector(".price-item.price-item--sale"),
-      mediaGallery,
-      mediaList,
-      fitmentWidget
-    };
+    mediaGallery == null ? void 0 : mediaGallery.querySelector(".product__media-list");
+    info == null ? void 0 : info.querySelector("x-ymm-filter.YMM_Ftmnt");
     this.keys = getAllKeysFromElement(this);
     const selects = Array.from(this.querySelectorAll("select[key]"));
     this.selects = selects;
     if (this.keys.length !== this.selects.length) {
       if (this.logger) {
-        throw this.logger.throw(
-          `Expected ${this.keys.length} selects, got ${this.selects.length}`
-        );
+        throw this.logger.throw(`Expected ${this.keys.length} selects, got ${this.selects.length}`);
       }
     }
-    this.tree = treeify({
-      keys: this.keys,
-      list: siblings,
-      itemToInfo: (x) => {
-        return {
-          info: x.options,
-          value: x.product.handle
-        };
-      }
-    });
     const reactiveTree = new ReactiveFilterTree({
       keys: this.keys,
       list: siblings,
@@ -666,63 +652,25 @@ class ProductSiblings extends HTMLElement {
         if (!this.attrs)
           return;
         if (!this._hydrated) {
-          (_a = this.logger) == null ? void 0 : _a.debug("onRoot - but no hydrated");
+          (_a = this.logger) == null ? void 0 : _a.debug("onRoot - but not hydrated");
           return;
         }
-        this._dispatchEvent("root", { root, defaultRoot });
-        const r = root ?? defaultRoot;
-        const url = r[0];
-        if (!url)
-          return;
-        const sib = siblings.find((sib2) => sib2.product.handle === url);
-        (_b = this.logger) == null ? void 0 : _b.debug('"onRoot" => ', { root, defaultRoot, url, sib });
-        if (!sib)
-          return;
-        const { product, options } = sib;
-        const c = this.closest(".product");
-        if (!c)
-          return;
-        if (el.title)
-          el.title.textContent = product.title;
-        if (el.fitmentWidget) {
-          if ("fits" in el.fitmentWidget) {
-            el.fitmentWidget.fits = options.fitment;
-          }
-        }
-        if (el.mediaList) {
-          M.fetchHtml(
-            `/products/${product.handle}?section_id=${this.attrs.sectionId}`
-          ).then((next) => {
-            var _a2, _b2;
-            const nextMediaGallery = (_a2 = next.querySelector("media-gallery")) == null ? void 0 : _a2.cloneNode(true);
-            if (el.mediaGallery instanceof HTMLElement) {
-              if (nextMediaGallery instanceof HTMLElement) {
-                el.mediaGallery.style.display = "";
-                el.mediaGallery.replaceWith(nextMediaGallery);
-                el.mediaGallery = nextMediaGallery;
-              } else {
-                el.mediaGallery.style.display = "none";
-              }
-            }
-            const nextPriceCont = (_b2 = next.querySelector(".price__container")) == null ? void 0 : _b2.cloneNode(true);
-            if (el.priceCont instanceof HTMLElement) {
-              if (nextPriceCont instanceof HTMLElement) {
-                el.priceCont.style.display = "";
-                el.priceCont.replaceWith(nextPriceCont);
-                el.priceCont = nextPriceCont;
-              } else {
-                el.priceCont.style.display = "none";
-              }
-            }
-          });
-        }
+        const rootItem = root ?? defaultRoot;
+        const productHandle = rootItem[0];
+        const sib = productHandle ? siblings.find((sib2) => sib2.product.handle === productHandle) ?? null : null;
+        this._dispatchEvent("root", { root, defaultRoot, sibling: sib });
+        (_b = this.logger) == null ? void 0 : _b.debug("onRoot => ", { root, defaultRoot, handle: productHandle, sib });
       },
       onOptionsChange: (selection) => {
-        var _a;
-        this._dispatchEvent("options_update", selection);
+        var _a, _b;
+        const prevented = this._dispatchEvent("onOptionsChange", selection);
+        if (prevented) {
+          (_a = this.logger) == null ? void 0 : _a.debug("onOptionsChange prevented");
+          return;
+        }
         const { index, options, defaultValue, selected, canDisable } = selection;
         if (this.logger) {
-          this.logger.debug('"onOptions" => ', {
+          this.logger.debug("onOptionsChange => ", {
             index,
             options,
             defaultValue,
@@ -730,7 +678,7 @@ class ProductSiblings extends HTMLElement {
             canDisable
           });
         }
-        const select = (_a = this.selects) == null ? void 0 : _a[index];
+        const select = (_b = this.selects) == null ? void 0 : _b[index];
         if (!select)
           return;
         updateSelectOptions(select, options);
@@ -754,33 +702,34 @@ class ProductSiblings extends HTMLElement {
    */
   _dispatchEvent(eventName, detail) {
     if (detail && typeOf(detail) === "Object") {
-      Object.defineProperty(detail, "element", {
+      Object.defineProperty(detail, "target", {
         value: this,
         writable: false,
         enumerable: false,
         configurable: false
       });
     }
-    const customEvent = new CustomEvent(ELEMENT_TAG + eventName, {
+    const customEvent = new CustomEvent(`${ELEMENT_TAG}:${eventName}`, {
       detail,
-      bubbles: true,
-      cancelable: false
+      bubbles: false,
+      cancelable: true
     });
     this.dispatchEvent(customEvent);
-    document.dispatchEvent(customEvent);
+    const isCancelled = !document.dispatchEvent(customEvent);
+    return isCancelled;
   }
 }
 function fetchSiblings(group) {
   if (!group) {
     return Promise.reject(
-      new Error(
-        "Missing `group` argument, which is needed when trying to fetch siblings"
-      )
+      new Error("Missing `group` argument, which is needed when trying to fetch siblings")
     );
   }
   return fetchJson(`/search?view=siblings&type=product&q=${group}`);
 }
 ProductSiblings.fetchSiblings = memoize(fetchSiblings);
+ProductSiblings.fetchHtml = M.fetchHtml;
+ProductSiblings.fetchJson = M.fetchJson;
 ProductSiblings.tag = ELEMENT_TAG;
 if (!window.customElements.get(ELEMENT_TAG)) {
   window.customElements.define(ELEMENT_TAG, ProductSiblings);

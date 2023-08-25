@@ -15,7 +15,7 @@ Example:
 {%- endcomment -%}
 
 {%- liquid
-  assign namespace_keys = 'wspec.style//wspec.finish//wspec.size//wspec.pcd//wspec.offset//wspec.bore' | split: '//'
+  assign namespace_keys = 'wspec.style|wspec.finish|wspec.size|wspec.pcd|wspec.offset|wspec.bore' | split: '|'
 -%}
 
 {%- paginate search.results by 500 -%}

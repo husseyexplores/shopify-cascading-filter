@@ -85,10 +85,7 @@ export function getNumberRange(input, maxRange = Infinity) {
  * @param {{to?: 'integer' | 'float' | 'number', fallback?: number, canThrow?: boolean }} options
  * @returns {number}
  */
-export function toNumber(
-  input,
-  { to = 'number', fallback, canThrow = true } = {}
-) {
+export function toNumber(input, { to = 'number', fallback, canThrow = true } = {}) {
   if (to == null) return fallback
 
   const parsed = numberParser(input, to)
@@ -159,10 +156,7 @@ export function range(start, end, step = 1) {
   }
 
   if (typeofStart === 'number') {
-    const range = Array.from(
-      { length: (end - start) / step + 1 },
-      (_, i) => start + i * step
-    )
+    const range = Array.from({ length: (end - start) / step + 1 }, (_, i) => start + i * step)
     return range
   }
 
@@ -175,7 +169,7 @@ export function range(start, end, step = 1) {
     end = end.charCodeAt(0)
 
     const range = Array.from({ length: (end - start) / step + 1 }, (_, i) =>
-      String.fromCharCode(start + i * step)
+      String.fromCharCode(start + i * step),
     )
     return range
   }
@@ -234,7 +228,7 @@ export function filterUntil(list, predicate) {
       }
       return reduce.BREAK
     },
-    []
+    [],
   )
 }
 
@@ -347,9 +341,7 @@ export function getParsedAttributes(element, attributes) {
       }
 
       if (Number.isNaN(parsed)) {
-        errors.push(
-          new Error(`Invalid ${attrKey} attribute (NaN): ${rawValue}`)
-        )
+        errors.push(new Error(`Invalid ${attrKey} attribute (NaN): ${rawValue}`))
         continue
       }
 
@@ -367,17 +359,18 @@ export function getParsedAttributes(element, attributes) {
 
 // -----------------------------------------------------------------------------
 
-export function fetchJson(url) {
+export function fetchJson(url, fetchConfig) {
   return fetch(url, {
     headers: {
       accept: 'application/json',
     },
+    ...fetchConfig,
   }).then(r => r.json())
 }
 
 const htmlParser = new DOMParser()
-export function fetchHtml(url) {
-  return fetch(url)
+export function fetchHtml(url, fetchConfig) {
+  return fetch(url, fetchConfig)
     .then(r => r.text())
     .then(htmlText => htmlParser.parseFromString(htmlText, 'text/html'))
 }
@@ -387,23 +380,32 @@ export function fetchHtml(url) {
  * @param {(...args: T[]) => U} fn - The function to be memoized.
  * @returns {(...args: T[]) => U} - Memoized version of the input function.
  */
-export function memoize(fn) {
+export function memoize(fn, memoizedArgsIndices) {
   const CACHE = new Map()
   return (...args) => {
     // const key = JSON.stringify(args)
-    const key = hash(args)
+
+    const key = hash(
+      typeof memoizedArgsIndices === 'number' ? args.slice(0, memoizedArgsIndices + 1) : args,
+    )
 
     if (CACHE.has(key)) {
       return CACHE.get(key)
     }
     const result = fn(...args)
+    if (result instanceof Promise) {
+      result.catch(e => {
+        CACHE.delete(key)
+        throw e
+      })
+    }
     CACHE.set(key, result)
     return result
   }
 }
 
 export const M = {
-  fetchHtml: memoize(fetchHtml),
+  fetchHtml: memoize(fetchHtml, 0),
   fetchJson: memoize(fetchJson),
 }
 

@@ -20,17 +20,19 @@ Usage:
     endif
   endfor
 
-  assign namespace_keys = 'wspec.style//wspec.finish//wspec.size//wspec.pcd//wspec.offset//wspec.bore' | split: '//'
+  assign namespace_keys = 'wspec.style|wspec.finish|wspec.size|wspec.pcd|wspec.offset|wspec.cbore' | split: '|'
+  assign namespace_keys_display_labels = 'style|finish|size|pcd|offset|center bore' | split: '|'
 
   assign form_uid = 'now' | date: '%N'
   assign form_uid = 'product_siblings_' | append: form_uid
 
-  assign root_url =  'https://' | append: shop.domain | append: routes.root_url
+  assign root_url = '/' | append: routes.root_url
   assign root_url_last_char = root_url | slice: -1, 1
   if root_url_last_char == '/'
     assign root_url_index = root_url.size | minus: 1
     assign root_url = root_url | slice: 0, root_url_index
   endif
+  assign root_url = root_url | replace: '//', '/'
 -%}
 
 {%- comment -%}
@@ -49,31 +51,37 @@ Attributes:
   pid="{{ product.id }}"
   section-id="{{ section.id }}"
   root-url="{{ root_url }}">
-  <p>
-    Style:
-    <strong>{{ sibling_group }}</strong>
-  </p>
+  <div class="product-siblings__current-style">
+    <label>Style: </label> 
+    <strong {% if sibling_group == blank %}style="color: red;"{% endif %}>
+      {{- sibling_group | default: 'STYLE MISSING' -}}
+    </strong>
+  </div>
 
-  {%- for namespace_key in namespace_keys -%}
-    {% liquid
-      assign parts = namespace_key | split: '.'
-      assign namespace = parts[0]
-      assign key = parts[1]
-      assign metafield = product.metafields[namespace][key]
-      assign mf_value = metafield.value
-      assign field_uid = 'now' | date: '%N'
-    %}
-    <div {% if forloop.first %}hidden{% endif %}>
-      <label for="{{ field_uid }}">{{ key }}</label>
-      <select
-        form="{{ form_uid }}"
-        key="{{ key }}"
-        id="{{ field_uid }}">
-        {% comment %} <option value="">Select {{ key }}</option> {% endcomment %}
-        <option value="{{ mf_value }}" selected>{{ mf_value }}</option>
-      </select>
-    </div>
-  {%- endfor -%}
+  <div class="product-siblings__selects">
+    {%- for namespace_key in namespace_keys -%}
+      {% liquid
+        assign parts = namespace_key | split: '.'
+        assign namespace = parts[0]
+        assign key = parts[1]
+        assign metafield = product.metafields[namespace][key]
+        assign mf_value = metafield.value
+        assign field_uid = 'now' | date: '%N'
+
+        assign display_label = namespace_keys_display_labels[forloop.index0]
+      %}
+      <div class="product-siblings__select-wrapper" {% if forloop.first %}hidden{% endif %}>
+        <label for="{{ field_uid }}">{{ display_label }}</label>
+        <select
+          form="{{ form_uid }}"
+          key="{{ key }}"
+          id="{{ field_uid }}">
+          {% comment %} <option value="">Select {{ key }}</option> {% endcomment %}
+          <option value="{{ mf_value }}" selected>{{ mf_value }}</option>
+        </select>
+        </div>
+    {%- endfor -%}
+  </div>
 </x-product-siblings>
 
 

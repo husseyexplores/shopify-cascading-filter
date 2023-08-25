@@ -134,14 +134,22 @@ $q.first = function first(ctx, selector, callback) {
   };
 };
 new DOMParser();
-function memoize(fn) {
+function memoize(fn, memoizedArgsIndices) {
   const CACHE = /* @__PURE__ */ new Map();
   return (...args) => {
-    const key = o(args);
+    const key = o(
+      typeof memoizedArgsIndices === "number" ? args.slice(0, memoizedArgsIndices + 1) : args
+    );
     if (CACHE.has(key)) {
       return CACHE.get(key);
     }
     const result = fn(...args);
+    if (result instanceof Promise) {
+      result.catch((e) => {
+        CACHE.delete(key);
+        throw e;
+      });
+    }
     CACHE.set(key, result);
     return result;
   };
@@ -669,7 +677,7 @@ class YMM_Filter extends HTMLElement {
   }
   _getActionUrl(filterValues) {
     const filterParamName = this.filterJson.param_name;
-    const url = new URL(this.rootCollectionHandle);
+    const url = new URL(this.rootCollectionHandle, window.location.origin);
     url.searchParams.delete(filterParamName);
     const valuesList = Array.isArray(filterValues) ? filterValues : [filterValues];
     valuesList.forEach((value) => {

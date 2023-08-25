@@ -16,7 +16,7 @@ const ELEMENT_TAG = 'x-product-siblings'
 const GROUP_TAG_PREFIX = '_GROUP:'
 
 export class ProductSiblings extends HTMLElement {
-  connectedCallback() {
+  async connectedCallback() {
     if (!this.isConnected) return
 
     this._ac?.abort()
@@ -28,9 +28,7 @@ export class ProductSiblings extends HTMLElement {
       group: {
         fallback: undefined,
         parse: x => {
-          const group = x.startsWith(GROUP_TAG_PREFIX)
-            ? x.slice(GROUP_TAG_PREFIX.length)
-            : x
+          const group = x.startsWith(GROUP_TAG_PREFIX) ? x.slice(GROUP_TAG_PREFIX.length) : x
           if (!group.length) return new Error('Invalid or missing "group"')
           return group
         },
@@ -52,7 +50,7 @@ export class ProductSiblings extends HTMLElement {
     })
 
     this._dispatchEvent('loading')
-    this._setupSiblings()
+    await this._setupSiblings()
 
     // ------------------------------------------------------------------
 
@@ -81,6 +79,7 @@ export class ProductSiblings extends HTMLElement {
     const mediaList = mediaGallery?.querySelector('.product__media-list')
     const fitmentWidget = info?.querySelector('x-ymm-filter.YMM_Ftmnt')
 
+    /*
     const el = {
       title: info?.querySelector('.product__title h1'),
       priceCont,
@@ -90,6 +89,7 @@ export class ProductSiblings extends HTMLElement {
       mediaList,
       fitmentWidget,
     }
+    */
 
     // const allOptions = siblings.reduce((acc, sibling) => {
     //   const { options, product } = sibling
@@ -123,22 +123,20 @@ export class ProductSiblings extends HTMLElement {
 
     if (this.keys.length !== this.selects.length) {
       if (this.logger) {
-        throw this.logger.throw(
-          `Expected ${this.keys.length} selects, got ${this.selects.length}`
-        )
+        throw this.logger.throw(`Expected ${this.keys.length} selects, got ${this.selects.length}`)
       }
     }
 
-    this.tree = treeify({
-      keys: this.keys,
-      list: siblings,
-      itemToInfo: x => {
-        return {
-          info: x.options,
-          value: x.product.handle,
-        }
-      },
-    })
+    // this.tree = treeify({
+    //   keys: this.keys,
+    //   list: siblings,
+    //   itemToInfo: x => {
+    //     return {
+    //       info: x.options,
+    //       value: x.product.handle,
+    //     }
+    //   },
+    // })
 
     const reactiveTree = new ReactiveFilterTree({
       keys: this.keys,
@@ -155,24 +153,27 @@ export class ProductSiblings extends HTMLElement {
         if (!this.attrs) return
 
         if (!this._hydrated) {
-          this.logger?.debug('onRoot - but no hydrated')
+          this.logger?.debug('onRoot - but not hydrated')
           return
         }
 
-        this._dispatchEvent('root', { root, defaultRoot })
+        // reached the root on of three. Root is an array or handles
+        const rootItem = root ?? defaultRoot
+        const productHandle = rootItem[0]
+        const sib = productHandle
+          ? siblings.find(sib => sib.product.handle === productHandle) ?? null
+          : null
 
-        const r = root ?? defaultRoot
-        const url = r[0]
-        if (!url) return
+        this._dispatchEvent('root', { root, defaultRoot, sibling: sib })
+        this.logger?.debug('onRoot => ', { root, defaultRoot, handle: productHandle, sib })
 
-        const sib = siblings.find(sib => sib.product.handle === url)
-        this.logger?.debug('"onRoot" => ', { root, defaultRoot, url, sib })
-
+        /*
         if (!sib) return
         const { product, options } = sib
         const c = this.closest('.product')
 
         if (!c) return
+
         if (el.title) el.title.textContent = product.title
         // if (el.price) el.price.textContent = product.price
 
@@ -183,45 +184,46 @@ export class ProductSiblings extends HTMLElement {
         }
 
         if (el.mediaList) {
-          M.fetchHtml(
-            `/products/${product.handle}?section_id=${this.attrs.sectionId}`
-          ).then(next => {
-            const nextMediaGallery = next
-              .querySelector('media-gallery')
-              ?.cloneNode(true)
-            if (el.mediaGallery instanceof HTMLElement) {
-              if (nextMediaGallery instanceof HTMLElement) {
-                el.mediaGallery.style.display = ''
-                el.mediaGallery.replaceWith(nextMediaGallery)
-                el.mediaGallery = nextMediaGallery
-              } else {
-                el.mediaGallery.style.display = 'none'
+          M.fetchHtml(`/products/${product.handle}?section_id=${this.attrs.sectionId}`).then(
+            next => {
+              const nextMediaGallery = next.querySelector('media-gallery')?.cloneNode(true)
+              if (el.mediaGallery instanceof HTMLElement) {
+                if (nextMediaGallery instanceof HTMLElement) {
+                  el.mediaGallery.style.display = ''
+                  el.mediaGallery.replaceWith(nextMediaGallery)
+                  el.mediaGallery = nextMediaGallery
+                } else {
+                  el.mediaGallery.style.display = 'none'
+                }
               }
-            }
 
-            const nextPriceCont = next
-              .querySelector('.price__container')
-              ?.cloneNode(true)
+              const nextPriceCont = next.querySelector('.price__container')?.cloneNode(true)
 
-            if (el.priceCont instanceof HTMLElement) {
-              if (nextPriceCont instanceof HTMLElement) {
-                el.priceCont.style.display = ''
-                el.priceCont.replaceWith(nextPriceCont)
-                el.priceCont = nextPriceCont
-              } else {
-                el.priceCont.style.display = 'none'
+              if (el.priceCont instanceof HTMLElement) {
+                if (nextPriceCont instanceof HTMLElement) {
+                  el.priceCont.style.display = ''
+                  el.priceCont.replaceWith(nextPriceCont)
+                  el.priceCont = nextPriceCont
+                } else {
+                  el.priceCont.style.display = 'none'
+                }
               }
-            }
-          })
+            },
+          )
         }
+        */
       },
       onOptionsChange: selection => {
-        this._dispatchEvent('options_update', selection)
+        const prevented = this._dispatchEvent('onOptionsChange', selection)
+        if (prevented) {
+          this.logger?.debug('onOptionsChange prevented')
+          return
+        }
 
         const { index, options, defaultValue, selected, canDisable } = selection
 
         if (this.logger) {
-          this.logger.debug('"onOptions" => ', {
+          this.logger.debug('onOptionsChange => ', {
             index,
             options,
             defaultValue,
@@ -264,7 +266,7 @@ export class ProductSiblings extends HTMLElement {
   _dispatchEvent(eventName, detail) {
     // add `element` prop to details
     if (detail && typeOf(detail) === 'Object') {
-      Object.defineProperty(detail, 'element', {
+      Object.defineProperty(detail, 'target', {
         value: this,
         writable: false,
         enumerable: false,
@@ -272,23 +274,22 @@ export class ProductSiblings extends HTMLElement {
       })
     }
 
-    const customEvent = new CustomEvent(ELEMENT_TAG + eventName, {
+    const customEvent = new CustomEvent(`${ELEMENT_TAG}:${eventName}`, {
       detail,
-      bubbles: true,
-      cancelable: false,
+      bubbles: false,
+      cancelable: true,
     })
 
     this.dispatchEvent(customEvent)
-    document.dispatchEvent(customEvent)
+    const isCancelled = !document.dispatchEvent(customEvent)
+    return isCancelled
   }
 }
 
 function fetchSiblings(group) {
   if (!group) {
     return Promise.reject(
-      new Error(
-        'Missing `group` argument, which is needed when trying to fetch siblings'
-      )
+      new Error('Missing `group` argument, which is needed when trying to fetch siblings'),
     )
   }
 
@@ -296,6 +297,8 @@ function fetchSiblings(group) {
 }
 
 ProductSiblings.fetchSiblings = memoize(fetchSiblings)
+ProductSiblings.fetchHtml = M.fetchHtml
+ProductSiblings.fetchJson = M.fetchJson
 
 ProductSiblings.tag = ELEMENT_TAG
 if (!window.customElements.get(ELEMENT_TAG)) {

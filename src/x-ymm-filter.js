@@ -427,7 +427,7 @@ export class YMM_Filter extends HTMLElement {
 
   _getActionUrl(filterValues) {
     const filterParamName = this.filterJson.param_name
-    const url = new URL(this.rootCollectionHandle)
+    const url = new URL(this.rootCollectionHandle, window.location.origin)
 
     url.searchParams.delete(filterParamName)
     const valuesList = Array.isArray(filterValues)
