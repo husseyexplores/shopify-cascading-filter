@@ -378,6 +378,7 @@ export function fetchHtml(url, fetchConfig) {
 /**
  * @template T, U
  * @param {(...args: T[]) => U} fn - The function to be memoized.
+ * @param {number} [memoizedArgsIndices] - The function to be memoized.
  * @returns {(...args: T[]) => U} - Memoized version of the input function.
  */
 export function memoize(fn, memoizedArgsIndices) {

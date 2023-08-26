@@ -4,7 +4,7 @@ import { isObject, getNumberRange, toNumber, filterUntil } from './utils'
 export const SYM_KEYS = Symbol('OBJECT_KEYS')
 export const SYM_DEPTH = Symbol('OBJECT_DEPTH')
 
-export const getTreeOptions = tree => tree ? tree[SYM_KEYS] : null
+export const getTreeOptions = tree => (tree ? tree[SYM_KEYS] : null)
 const isValidValue = x => x != null && x !== ''
 
 /**
@@ -67,13 +67,7 @@ export function iterateOverTree(obj, fn, level = 0) {
  * @param {{ data: T[], keys: KeyParsed[], path?: string[], setValue: (values: any[], value: T) => any, getValue?: (value: T) => U}} param0
  * @returns
  */
-export function createFiltersTree({
-  data,
-  keys = [],
-  path = [],
-  setValue,
-  getValue,
-}) {
+export function createFiltersTree({ data, keys = [], path = [], setValue, getValue }) {
   // if first item is array, then we use index to get value
   // otherwise we assume its a list of objects
   const useIndex = data.length > 0 && Array.isArray(data[0])
@@ -91,8 +85,7 @@ export function createFiltersTree({
 
       let value = useIndex ? obj[keyIndex] : obj[k]
       const valueType = typeof value
-      if (valueType === 'number' || valueType === 'boolean')
-        value = value.toString()
+      if (valueType === 'number' || valueType === 'boolean') value = value.toString()
       if (typeof value !== 'string' || value === '') return
 
       let resInnerObj = keys.slice(0, keyIndex).reduce((x, { key: k }, i) => {
@@ -125,14 +118,12 @@ export function createFiltersTree({
 
           if (!obj[SYM_KEYS]) {
             Object.defineProperty(obj, SYM_KEYS, {
-              value: objKeys.sort((a, b) =>
-                desc ? b.localeCompare(a) : a.localeCompare(b)
-              ),
+              value: objKeys.sort((a, b) => (desc ? b.localeCompare(a) : a.localeCompare(b))),
               configurable: false,
               writable: false,
               enumerable: false,
             })
-          } 
+          }
         })
       : res
 
@@ -173,9 +164,7 @@ export function getAllKeysFromElement(element) {
   element.querySelectorAll('[key]').forEach(el => {
     const key = el.getAttribute('key')?.trim()
     if (key && !stash.has(key)) {
-      let sort = /** @type {KeyParsed["sort"]} */ (
-        el.getAttribute('sort')?.trim()
-      )
+      let sort = /** @type {KeyParsed["sort"]} */ (el.getAttribute('sort')?.trim())
       if (sort !== 'desc') sort = 'asc'
 
       let ranged = /** @type {KeyParsed["ranged"]} */ el.hasAttribute('ranged')
@@ -323,6 +312,7 @@ export class ReactiveFilterTree {
    *   beforeOptionsUpdate?: (...any) => *
    *   afterOptionsUpdate?: (...any) => *
    *   logger?: Logger
+   *   canAutoPreselect?: boolean
    * }} params
    */
   constructor({
@@ -336,6 +326,7 @@ export class ReactiveFilterTree {
     beforeOptionsUpdate,
     afterOptionsUpdate,
     logger = console,
+    canAutoPreselect = true,
   }) {
     this.maxIndex = keys.length - 1
     this.onOptionsChange = onOptionsChange
@@ -344,6 +335,7 @@ export class ReactiveFilterTree {
     this.getSelectedValueAtIndex = getSelectedValueAtIndex
     this.beforeOptionsUpdate = beforeOptionsUpdate
     this.afterOptionsUpdate = afterOptionsUpdate
+    this.canAutoPreselect = canAutoPreselect
 
     this.tree = treeify({ keys, list, itemToInfo })
 
@@ -393,15 +385,14 @@ export class ReactiveFilterTree {
 
     const { defaultRoot, root } = PS.reduce(
       (acc, s) => {
-        acc.defaultRoot =
-          acc.defaultRoot?.[s.selected ?? s.defaultValue ?? ''] ?? null
+        acc.defaultRoot = acc.defaultRoot?.[s.selected ?? s.defaultValue ?? ''] ?? null
         acc.root = (s.selected ? acc.root[s.selected] : null) ?? null
         return acc
       },
       {
         defaultRoot: this.tree,
         root: this.tree,
-      }
+      },
     )
     this._possibleSelection = PS
 
@@ -413,9 +404,7 @@ export class ReactiveFilterTree {
   }
 
   get selectedStrict() {
-    const nonNull = /** @type {(string)[]} */ (
-      filterUntil(this._selection, x => x !== null)
-    )
+    const nonNull = /** @type {(string)[]} */ (filterUntil(this._selection, x => x !== null))
     return nonNull
   }
 
@@ -446,17 +435,20 @@ export class ReactiveFilterTree {
     if (index > 0) {
       const prevSelection = PS[index - 1]
       if (prevSelection.selected === null) {
-        this.logger.warn(
-          'Unable to select. Previous value is not selected yet.',
-          {
+        if (!this.canAutoPreselect) {
+          this.logger.warn('Unable to select. Previous value is not selected yet.', {
             index,
             prevPS: prevSelection,
             PS,
-          }
-        )
+          })
 
-        this._selection[index] = prevValueAtIndex
-        return
+          this._selection[index] = prevValueAtIndex
+          return
+        }
+
+        if (this.canAutoPreselect) {
+          prevSelection.selected = prevSelection.defaultValue
+        }
       }
     }
 

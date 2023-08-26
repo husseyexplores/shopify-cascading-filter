@@ -64,13 +64,7 @@ function iterateOverTree(obj, fn, level = 0) {
   }
   return obj;
 }
-function createFiltersTree({
-  data,
-  keys = [],
-  path = [],
-  setValue,
-  getValue
-}) {
+function createFiltersTree({ data, keys = [], path = [], setValue, getValue }) {
   const useIndex = data.length > 0 && Array.isArray(data[0]);
   let res = {};
   keys.forEach(({ key: k }, keyIndex) => {
@@ -114,9 +108,7 @@ function createFiltersTree({
     const desc = ((_a = keys[levelIndex]) == null ? void 0 : _a.sort) === "desc";
     if (!obj[SYM_KEYS]) {
       Object.defineProperty(obj, SYM_KEYS, {
-        value: objKeys.sort(
-          (a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)
-        ),
+        value: objKeys.sort((a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)),
         configurable: false,
         writable: false,
         enumerable: false

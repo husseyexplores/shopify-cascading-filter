@@ -139,6 +139,7 @@ export class ProductSiblings extends HTMLElement {
     // })
 
     const reactiveTree = new ReactiveFilterTree({
+      canAutoPreselect: !this.hasAttribute('no-autoselect'),
       keys: this.keys,
       list: siblings,
       itemToInfo: x => {

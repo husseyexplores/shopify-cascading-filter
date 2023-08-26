@@ -264,13 +264,7 @@ function iterateOverTree(obj, fn, level = 0) {
   }
   return obj;
 }
-function createFiltersTree({
-  data,
-  keys = [],
-  path = [],
-  setValue,
-  getValue
-}) {
+function createFiltersTree({ data, keys = [], path = [], setValue, getValue }) {
   const useIndex = data.length > 0 && Array.isArray(data[0]);
   let res = {};
   keys.forEach(({ key: k }, keyIndex) => {
@@ -314,9 +308,7 @@ function createFiltersTree({
     const desc = ((_a = keys[levelIndex]) == null ? void 0 : _a.sort) === "desc";
     if (!obj[SYM_KEYS]) {
       Object.defineProperty(obj, SYM_KEYS, {
-        value: objKeys.sort(
-          (a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)
-        ),
+        value: objKeys.sort((a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)),
         configurable: false,
         writable: false,
         enumerable: false
@@ -448,6 +440,7 @@ class ReactiveFilterTree {
    *   beforeOptionsUpdate?: (...any) => *
    *   afterOptionsUpdate?: (...any) => *
    *   logger?: Logger
+   *   canAutoPreselect?: boolean
    * }} params
    */
   constructor({
@@ -460,7 +453,8 @@ class ReactiveFilterTree {
     initialValues,
     beforeOptionsUpdate,
     afterOptionsUpdate,
-    logger = console
+    logger = console,
+    canAutoPreselect = true
   }) {
     this.maxIndex = keys.length - 1;
     this.onOptionsChange = onOptionsChange;
@@ -469,6 +463,7 @@ class ReactiveFilterTree {
     this.getSelectedValueAtIndex = getSelectedValueAtIndex;
     this.beforeOptionsUpdate = beforeOptionsUpdate;
     this.afterOptionsUpdate = afterOptionsUpdate;
+    this.canAutoPreselect = canAutoPreselect;
     this.tree = treeify$1({ keys, list, itemToInfo });
     if (initialValues.length !== keys.length) {
       throw new Error("initialValues must be the same length as keys");
@@ -551,16 +546,18 @@ class ReactiveFilterTree {
     if (index > 0) {
       const prevSelection = PS[index - 1];
       if (prevSelection.selected === null) {
-        this.logger.warn(
-          "Unable to select. Previous value is not selected yet.",
-          {
+        if (!this.canAutoPreselect) {
+          this.logger.warn("Unable to select. Previous value is not selected yet.", {
             index,
             prevPS: prevSelection,
             PS
-          }
-        );
-        this._selection[index] = prevValueAtIndex;
-        return;
+          });
+          this._selection[index] = prevValueAtIndex;
+          return;
+        }
+        if (this.canAutoPreselect) {
+          prevSelection.selected = prevSelection.defaultValue;
+        }
       }
     }
     if (root || defaultRoot) {
@@ -753,11 +750,18 @@ class YMM_Filter extends HTMLElement {
     this._updateShowAttr("result");
   }
   _updateSelect(selectIndex, newValue) {
-    const validValue = isValidOptionValue(newValue);
+    let validValue = isValidOptionValue(newValue);
     newValue = newValue ?? "";
     const selects = this.els.selects;
     const select = selects[selectIndex];
     select.value = newValue;
+    if (select.value === "") {
+      validValue = false;
+      select.value = "";
+      for (let i2 = selectIndex; i2 < selects.length; i2++) {
+        remove(this.keys[i2].key);
+      }
+    }
     if (validValue || selectIndex === 0) {
       select.removeAttribute("disabled");
     }
@@ -829,8 +833,21 @@ class YMM_Filter extends HTMLElement {
       []
     );
     this._allSelected = this.selectedOptions.length === this.els.selects.length;
-    this.finalValue = this._allSelected ? this.selectedOptions.reduce((tree, value) => {
-      return tree[value];
+    this.finalValue = this._allSelected ? this.selectedOptions.reduce((tree, value, index) => {
+      const isLast = index === this.selectedOptions.length - 1;
+      if (!isLast) {
+        return (tree == null ? void 0 : tree[value]) ?? null;
+      }
+      const root = tree == null ? void 0 : tree[value];
+      if (!root)
+        return null;
+      if (value != "ALL" && root) {
+        const ALL = tree == null ? void 0 : tree["ALL"];
+        if (ALL) {
+          return Array.from(/* @__PURE__ */ new Set([...ALL, ...root]));
+        }
+      }
+      return root;
     }, this.tree) : null;
   }
   // updates the root, selects, and buttons state
@@ -873,9 +890,13 @@ class YMM_Filter extends HTMLElement {
     this._removeInputFields();
     this.els.form((form) => form.removeAttribute("action"));
     if (this.finalValue) {
+      if (!Array.isArray(this.finalValue)) {
+        throw new Error("Final value must be an array");
+      }
       const actionUrl = this._getActionUrl(this.finalValue);
       this.els.form((form) => {
         form.setAttribute("action", actionUrl.toString());
+        form.setAttribute("data-values", this.finalValue.join(","));
         if (this._autoSubmit && this._hydrated) {
           const prevented = !form.dispatchEvent(
             new Event("submit", { bubbles: true, cancelable: true })
@@ -924,14 +945,20 @@ class YMM_Filter extends HTMLElement {
     const url = new URL(this.rootCollectionHandle, window.location.origin);
     url.searchParams.delete(filterParamName);
     const valuesList = Array.isArray(filterValues) ? filterValues : [filterValues];
+    this.els.form((form) => {
+      const inputFields = form.querySelectorAll(`[name="${CSS.escape(filterParamName)}"]`);
+      inputFields.forEach((el) => {
+        el.remove();
+      });
+    });
     valuesList.forEach((value) => {
       url.searchParams.append(filterParamName, value);
-      const inputField = Object.assign(document.createElement("input"), {
-        type: "hidden",
-        name: filterParamName,
-        value
-      });
       this.els.form((form) => {
+        const inputField = Object.assign(document.createElement("input"), {
+          type: "hidden",
+          name: filterParamName,
+          value
+        });
         form.appendChild(inputField);
       });
     });
@@ -998,10 +1025,7 @@ class YMM_Filter extends HTMLElement {
    * @param {string[]} fits - Fitment array ["2017-2018_DODGE_CHARGER","2006_FORD_MUSTANG"]
    */
   set fits(fits = []) {
-    this.setAttribute(
-      "fits",
-      typeof fits === "string" ? fits : JSON.stringify(fits)
-    );
+    this.setAttribute("fits", typeof fits === "string" ? fits : JSON.stringify(fits));
     this._fits = typeof fits === "string" ? JSON.parse(fits) : fits;
     this.fitsParsed = this._fits && Array.isArray(this._fits) ? treeify({
       keys: this.keys,
@@ -1126,6 +1150,7 @@ class ProductSiblings extends HTMLElement {
       }
     }
     const reactiveTree = new ReactiveFilterTree({
+      canAutoPreselect: !this.hasAttribute("no-autoselect"),
       keys: this.keys,
       list: siblings,
       itemToInfo: (x) => {

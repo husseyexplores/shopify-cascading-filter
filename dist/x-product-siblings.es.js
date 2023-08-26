@@ -242,13 +242,7 @@ function iterateOverTree(obj, fn, level = 0) {
   }
   return obj;
 }
-function createFiltersTree({
-  data,
-  keys = [],
-  path = [],
-  setValue,
-  getValue
-}) {
+function createFiltersTree({ data, keys = [], path = [], setValue, getValue }) {
   const useIndex = data.length > 0 && Array.isArray(data[0]);
   let res = {};
   keys.forEach(({ key: k }, keyIndex) => {
@@ -292,9 +286,7 @@ function createFiltersTree({
     const desc = ((_a = keys[levelIndex]) == null ? void 0 : _a.sort) === "desc";
     if (!obj[SYM_KEYS]) {
       Object.defineProperty(obj, SYM_KEYS, {
-        value: objKeys.sort(
-          (a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)
-        ),
+        value: objKeys.sort((a, b) => desc ? b.localeCompare(a) : a.localeCompare(b)),
         configurable: false,
         writable: false,
         enumerable: false
@@ -426,6 +418,7 @@ class ReactiveFilterTree {
    *   beforeOptionsUpdate?: (...any) => *
    *   afterOptionsUpdate?: (...any) => *
    *   logger?: Logger
+   *   canAutoPreselect?: boolean
    * }} params
    */
   constructor({
@@ -438,7 +431,8 @@ class ReactiveFilterTree {
     initialValues,
     beforeOptionsUpdate,
     afterOptionsUpdate,
-    logger = console
+    logger = console,
+    canAutoPreselect = true
   }) {
     this.maxIndex = keys.length - 1;
     this.onOptionsChange = onOptionsChange;
@@ -447,6 +441,7 @@ class ReactiveFilterTree {
     this.getSelectedValueAtIndex = getSelectedValueAtIndex;
     this.beforeOptionsUpdate = beforeOptionsUpdate;
     this.afterOptionsUpdate = afterOptionsUpdate;
+    this.canAutoPreselect = canAutoPreselect;
     this.tree = treeify({ keys, list, itemToInfo });
     if (initialValues.length !== keys.length) {
       throw new Error("initialValues must be the same length as keys");
@@ -529,16 +524,18 @@ class ReactiveFilterTree {
     if (index > 0) {
       const prevSelection = PS[index - 1];
       if (prevSelection.selected === null) {
-        this.logger.warn(
-          "Unable to select. Previous value is not selected yet.",
-          {
+        if (!this.canAutoPreselect) {
+          this.logger.warn("Unable to select. Previous value is not selected yet.", {
             index,
             prevPS: prevSelection,
             PS
-          }
-        );
-        this._selection[index] = prevValueAtIndex;
-        return;
+          });
+          this._selection[index] = prevValueAtIndex;
+          return;
+        }
+        if (this.canAutoPreselect) {
+          prevSelection.selected = prevSelection.defaultValue;
+        }
       }
     }
     if (root || defaultRoot) {
@@ -634,6 +631,7 @@ class ProductSiblings extends HTMLElement {
       }
     }
     const reactiveTree = new ReactiveFilterTree({
+      canAutoPreselect: !this.hasAttribute("no-autoselect"),
       keys: this.keys,
       list: siblings,
       itemToInfo: (x) => {

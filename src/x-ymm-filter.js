@@ -1,11 +1,4 @@
-import {
-  typeOf,
-  reduce,
-  $q,
-  createLogger,
-  memoize,
-  removeTrailingSlash,
-} from './utils'
+import { typeOf, reduce, $q, createLogger, memoize, removeTrailingSlash } from './utils'
 import { treeify as _treeify, SYM_KEYS, getAllKeysFromElement } from './filter'
 import * as ls from './local-storage'
 
@@ -42,9 +35,7 @@ export class YMM_Filter extends HTMLElement {
     this.rootUrl = removeTrailingSlash(this.rootUrl)
 
     this.collectionHandle =
-      this.getAttribute('collection-handle') ??
-      ls.get('collectionHandle') ??
-      'all'
+      this.getAttribute('collection-handle') ?? ls.get('collectionHandle') ?? 'all'
     ls.set('collectionHandle', this.collectionHandle)
 
     this.rootCollectionHandle = `${this.rootUrl}/collections/${this.collectionHandle}`
@@ -60,8 +51,8 @@ export class YMM_Filter extends HTMLElement {
     this.setAttribute('state', YMM_Filter.state.NONE)
 
     this.filterJson = JSON.parse(
-      this.querySelector('script[type="application/json"][data-filter-json]')
-        ?.textContent ?? 'null'
+      this.querySelector('script[type="application/json"][data-filter-json]')?.textContent ??
+        'null',
     )
 
     const filterJsonValues = this.filterJson?.values.map(x => x.value) ?? []
@@ -162,7 +153,7 @@ export class YMM_Filter extends HTMLElement {
           const value = e.currentTarget.value
           this._updateSelect(selectIndex, value)
         },
-        { signal: this._ac.signal }
+        { signal: this._ac.signal },
       )
     })
 
@@ -175,7 +166,7 @@ export class YMM_Filter extends HTMLElement {
         acc.push(cachedValue)
         return acc
       },
-      []
+      [],
     )
 
     selects.forEach((select, selectIndex) => {
@@ -190,12 +181,24 @@ export class YMM_Filter extends HTMLElement {
   }
 
   _updateSelect(selectIndex, newValue) {
-    const validValue = isValidOptionValue(newValue)
+    let validValue = isValidOptionValue(newValue)
     newValue = newValue ?? ''
 
     const selects = this.els.selects
     const select = selects[selectIndex]
     select.value = newValue
+
+    // If the value does not exist in the dropdown, it appears as blank
+    // manually set the value to empty...
+    if (select.value === '') {
+      validValue = false
+      select.value = ''
+
+      // if the current value is invalid. the rest will be too...
+      for (let i = selectIndex; i < selects.length; i++) {
+        ls.remove(this.keys[i].key)
+      }
+    }
 
     // First select is never disabled
     if (validValue || selectIndex === 0) {
@@ -217,10 +220,7 @@ export class YMM_Filter extends HTMLElement {
     // Reset all the 'next' selects
     for (let i = selectIndex + 1; i < selects.length; i++) {
       selects[i].value = ''
-      if (
-        this.selectedOptions.length === 0 ||
-        this.selectedOptions[i] == null
-      ) {
+      if (this.selectedOptions.length === 0 || this.selectedOptions[i] == null) {
         selects[i].options.length = 1
       }
     }
@@ -302,13 +302,32 @@ export class YMM_Filter extends HTMLElement {
         acc.push(selectedValue)
         return acc
       },
-      []
+      [],
     )
 
     this._allSelected = this.selectedOptions.length === this.els.selects.length
     this.finalValue = this._allSelected
-      ? this.selectedOptions.reduce((tree, value) => {
-          return tree[value]
+      ? this.selectedOptions.reduce((tree, value, index) => {
+          const isLast = index === this.selectedOptions.length - 1
+
+          if (!isLast) {
+            // this should never be undefined or null
+            // but just in case...
+            return tree?.[value] ?? null
+          }
+
+          // root is Array<T = string> | null
+          const root = tree?.[value]
+          if (!root) return null
+
+          if (value != 'ALL' && root) {
+            const ALL = tree?.['ALL']
+            if (ALL) {
+              return Array.from(new Set([...ALL, ...root]))
+            }
+          }
+
+          return root
         }, this.tree)
       : null
   }
@@ -345,14 +364,12 @@ export class YMM_Filter extends HTMLElement {
           }, this.fitsParsed)
         : false
 
-      // `finalValue` of the tree is always array.
+      // `finalValue` of the tree is always Array<T = string> | null.
       if (Array.isArray(fitsParsed)) fitsParsed = true
 
       const doesFit = fitsExactly || fitsParsed
 
-      state = doesFit
-        ? YMM_Filter.state.SELECTED_FITS
-        : YMM_Filter.state.SELECTED_UNFITS
+      state = doesFit ? YMM_Filter.state.SELECTED_FITS : YMM_Filter.state.SELECTED_UNFITS
     }
     this.setAttribute('state', state)
 
@@ -373,15 +390,20 @@ export class YMM_Filter extends HTMLElement {
     this.els.form(form => form.removeAttribute('action'))
 
     if (this.finalValue) {
+      if (!Array.isArray(this.finalValue)) {
+        throw new Error('Final value must be an array')
+      }
+
       const actionUrl = this._getActionUrl(this.finalValue)
 
       this.els.form(form => {
         form.setAttribute('action', actionUrl.toString())
+        form.setAttribute('data-values', this.finalValue.join(','))
 
         // auto-submit form
         if (this._autoSubmit && this._hydrated) {
           const prevented = !form.dispatchEvent(
-            new Event('submit', { bubbles: true, cancelable: true })
+            new Event('submit', { bubbles: true, cancelable: true }),
           )
           if (!prevented) {
             this.els.submitButton(button => {
@@ -417,7 +439,7 @@ export class YMM_Filter extends HTMLElement {
     this.els.form(form => {
       const filterParamName = this.filterJson.param_name
       const existingInputs = Array.from(form.elements).filter(
-        el => el.tagName === 'INPUT' && el.name === filterParamName
+        el => el.tagName === 'INPUT' && el.name === filterParamName,
       )
       existingInputs.forEach(input => {
         input.remove()
@@ -430,18 +452,27 @@ export class YMM_Filter extends HTMLElement {
     const url = new URL(this.rootCollectionHandle, window.location.origin)
 
     url.searchParams.delete(filterParamName)
-    const valuesList = Array.isArray(filterValues)
-      ? filterValues
-      : [filterValues]
+    const valuesList = Array.isArray(filterValues) ? filterValues : [filterValues]
+
+    // remove all the existing values
+    this.els.form(form => {
+      const inputFields = form.querySelectorAll(`[name="${CSS.escape(filterParamName)}"]`)
+      inputFields.forEach(el => {
+        el.remove()
+      })
+    })
 
     valuesList.forEach(value => {
       url.searchParams.append(filterParamName, value)
-      const inputField = Object.assign(document.createElement('input'), {
-        type: 'hidden',
-        name: filterParamName,
-        value,
-      })
+
       this.els.form(form => {
+        // form.appendChild(inputField)
+
+        const inputField = Object.assign(document.createElement('input'), {
+          type: 'hidden',
+          name: filterParamName,
+          value,
+        })
         form.appendChild(inputField)
       })
     })
@@ -463,7 +494,7 @@ export class YMM_Filter extends HTMLElement {
         event => {
           this._updateShowAttr(attr)
         },
-        { signal: this._ac.signal }
+        { signal: this._ac.signal },
       )
     })
   }
@@ -479,7 +510,7 @@ export class YMM_Filter extends HTMLElement {
         () => {
           this._reset()
         },
-        { signal: this._ac.signal }
+        { signal: this._ac.signal },
       )
     })
   }
@@ -519,10 +550,7 @@ export class YMM_Filter extends HTMLElement {
    * @param {string[]} fits - Fitment array ["2017-2018_DODGE_CHARGER","2006_FORD_MUSTANG"]
    */
   set fits(fits = []) {
-    this.setAttribute(
-      'fits',
-      typeof fits === 'string' ? fits : JSON.stringify(fits)
-    )
+    this.setAttribute('fits', typeof fits === 'string' ? fits : JSON.stringify(fits))
 
     this._fits = typeof fits === 'string' ? JSON.parse(fits) : fits
     this.fitsParsed =
