@@ -6,6 +6,7 @@ Accepts:
 - type: "FACET" | "FITMENT"
 - product: Product object (required if type is `FITMENT`)
 - layout_type?: 'vertical' | 'default' (defaults to 'default')
+- autosubmit?: Boolean (defaults to true)
 Usage:
 
 > {% render '_ymm-filter', results: collection, type: 'FACET' %}
@@ -20,7 +21,12 @@ Usage:
 {%- liquid
   if layout_type == blank
     assign layout_type = 'default'
-  endif 
+  endif
+  if autosubmit == true or autosubmit == false
+    assign autosubmit = autosubmit | json
+  else
+    assign autosubmit = 'true'
+  endif
 -%}
 
 {%- comment -%} Main logic {%- endcomment -%}
@@ -89,7 +95,7 @@ Attributes:
     dehydrated
     state="none pending"
     root-url="{{ root_url }}"
-    auto-submit="true"
+    auto-submit="{{ autosubmit }}"
     showing="facet"
     collection-handle="{{ collection_handle }}">
 
@@ -179,7 +185,7 @@ Render fitment
     state="none pending"
     root-url="{{ root_url }}"
     showing="facet"
-    auto-submit="true"
+    auto-submit="{{ autosubmit }}"
     {% if product %}fits='{{ fitment_list | json }}'{% endif %}>
 
     {{ filter_json_script }}
