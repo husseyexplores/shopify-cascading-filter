@@ -698,7 +698,9 @@ class YMM_Filter extends HTMLElement {
     this._setupUpdateShowAttr();
     this._hydrated = true;
     this.removeAttribute("dehydrated");
-    this._dispatchEvent("loaded");
+    this._dispatchEvent("loaded", {
+      selectedValues: this.selectedOptionsNullable
+    });
   }
   disconnectedCallback() {
     var _a;
@@ -907,6 +909,7 @@ class YMM_Filter extends HTMLElement {
               if (loadingClass) {
                 button.classList.add(loadingClass);
               }
+              button.disabled = true;
             });
             form.submit();
           }
@@ -1035,7 +1038,7 @@ class YMM_Filter extends HTMLElement {
     this._updateState();
     this._updateFilteredTitleElements();
   }
-  _dispatchEvent(name, detail = { element: this }) {
+  _dispatchEvent(eventName, detail = { element: this }) {
     if (detail && typeOf(detail) === "Object") {
       Object.defineProperty(detail, "element", {
         value: this,
@@ -1044,13 +1047,14 @@ class YMM_Filter extends HTMLElement {
         configurable: false
       });
     }
-    const customEvent = new CustomEvent(ELEMENT_TAG$1 + name, {
+    const customEvent = new CustomEvent(`${ELEMENT_TAG$1}:${eventName}`, {
       detail,
-      bubbles: true,
-      cancelable: false
+      bubbles: false,
+      cancelable: true
     });
     this.dispatchEvent(customEvent);
-    document.dispatchEvent(customEvent);
+    const isCancelled = !document.dispatchEvent(customEvent);
+    return isCancelled;
   }
 }
 YMM_Filter.state = {

@@ -114,7 +114,9 @@ export class YMM_Filter extends HTMLElement {
 
     this._hydrated = true
     this.removeAttribute('dehydrated')
-    this._dispatchEvent('loaded')
+    this._dispatchEvent('loaded', {
+      selectedValues: this.selectedOptionsNullable
+    })
   }
 
   disconnectedCallback() {
@@ -411,6 +413,7 @@ export class YMM_Filter extends HTMLElement {
               if (loadingClass) {
                 button.classList.add(loadingClass)
               }
+              button.disabled = true
             })
             form.submit()
           }
@@ -567,7 +570,7 @@ export class YMM_Filter extends HTMLElement {
     this._updateFilteredTitleElements()
   }
 
-  _dispatchEvent(name, detail = { element: this }) {
+  _dispatchEvent(eventName, detail = { element: this }) {
     // add `element` prop to details
     if (detail && typeOf(detail) === 'Object') {
       Object.defineProperty(detail, 'element', {
@@ -578,14 +581,15 @@ export class YMM_Filter extends HTMLElement {
       })
     }
 
-    const customEvent = new CustomEvent(ELEMENT_TAG + name, {
+    const customEvent = new CustomEvent(`${ELEMENT_TAG}:${eventName}`, {
       detail,
-      bubbles: true,
-      cancelable: false,
+      bubbles: false,
+      cancelable: true,
     })
 
     this.dispatchEvent(customEvent)
-    document.dispatchEvent(customEvent)
+    const isCancelled = !document.dispatchEvent(customEvent)
+    return isCancelled
   }
 }
 

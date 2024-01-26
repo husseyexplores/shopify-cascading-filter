@@ -1,0 +1,38 @@
+{%- assign YMM_NAMESPACE_KEY = 'custom.fitment_list' -%}
+
+{%- liquid
+  assign ymm_filter_applied = false
+
+  unless results
+    assign results = collection | default: search
+  endunless
+
+  assign filters = results.filters
+  unless filters
+    echo "false"
+    break
+  endunless
+
+  assign ymm_filter_param_name = 'filter.p.m.' | append: YMM_NAMESPACE_KEY
+  assign ymm_filter = false
+  for filter in filters
+    if filter.param_name == ymm_filter_param_name
+      assign ymm_filter = filter
+      break
+    endif
+  endfor
+
+  if ymm_filter
+    if ymm_filter.active_values.size > 0
+      assign ymm_filter_applied = true
+    endif         
+  endif
+
+  if ymm_filter_applied
+    echo "true"
+  else
+    echo "false"
+  endif
+
+  break
+-%}

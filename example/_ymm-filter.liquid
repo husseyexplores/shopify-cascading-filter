@@ -5,8 +5,9 @@ Accepts:
 - results?: {Object} Collection or Search object (defaults to `all` collection)
 - type: "FACET" | "FITMENT"
 - product: Product object (required if type is `FITMENT`)
-
+- layout_type?: 'vertical' | 'default' (defaults to 'default')
 Usage:
+
 > {% render '_ymm-filter', results: collection, type: 'FACET' %}
 > {% render '_ymm-filter', results: search, type: 'FACET' %}
 > {% render '_ymm-filter', type: 'FACET' %}
@@ -15,6 +16,14 @@ Usage:
 
 {%- assign YMM_NAMESPACE_KEY = 'custom.fitment_list' -%}
 
+{%- comment -%} Validate params {%- endcomment -%}
+{%- liquid
+  if layout_type == blank
+    assign layout_type = 'default'
+  endif 
+-%}
+
+{%- comment -%} Main logic {%- endcomment -%}
 {%- liquid
   unless results
     assign results = collection | default: search | default: collections['all']
@@ -39,21 +48,19 @@ Usage:
   endif
 
   assign collection_handle = collection_handle | default: collection.handle | default: 'all'
-  assign root_url =  'https://' | append: shop.domain | append: routes.root_url
+  assign root_url = '/' | append: routes.root_url
   assign root_url_last_char = root_url | slice: -1, 1
   if root_url_last_char == '/'
     assign root_url_index = root_url.size | minus: 1
     assign root_url = root_url | slice: 0, root_url_index
   endif
+  assign root_url = root_url | replace: '//', '/' 
 
   assign ymm_filter_applied = false
   if ymm_filter.active_values.size > 0
     assign ymm_filter_applied = true
   endif
--%}{{ '_ymm-facet.css' | asset_url | stylesheet_tag }}<script
-  src="{{ '_ymm-facet.es.js' | asset_url }}"
-  defer="defer"
-  type="module"></script>
+-%}
 
 {%- capture filter_json_script -%}
   <script type="application/json" data-filter-json>{%- render '_ymm-filter-json', filter: ymm_filter -%}</script>
@@ -71,8 +78,13 @@ Attributes:
 > fits              - Product fitment metafield JSON
 {% endcomment %}
 
+
+{{ 'x-ymm-filter.css' | asset_url | stylesheet_tag }}
+<script type="module" src="{{ 'x-ymm-filter.es.js' | asset_url }}" defer="defer"></script>
+
 {%- if type == 'FACET' -%}
   <x-ymm-filter
+    data-layout-type="{{ layout_type }}"
     class="YMM_Facet"
     dehydrated
     state="none pending"
@@ -83,8 +95,10 @@ Attributes:
 
     {{ filter_json_script }}
 
-    <h6 class="h4 YMM_Widget-title">Search By Vehicle</h6>
-    <form>
+    <h2 class="h2 YMM_Widget-title">Search By Vehicle</h2>
+    <h2 class="h2 YMM_Widget-title" data-ymm-toggle-open role="button" onclick="this.parentElement.classList.toggle('is-open'); this.parentElement.parentElement.classList.toggle('is-open')">Search By Vehicle</h2>
+
+    <form data-ymm-filter data-param="{{ ymm_filter.param_name }}">
       <div class="YMM_Select-item">
         <label>Year</label>
         <select
@@ -148,7 +162,17 @@ Render fitment
     assign fitment_list = product.metafields[FITMENT_NAMESAPCE][FITMENT_KEY].value
   -%}
 
+  <div style="display: none;">
+    <label>Fitment configuration</label>
+    <ul class="product__fitment-list">
+      {% for x in fitment_list %}
+        <li>{{ x }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
   <x-ymm-filter
+    data-layout-type="{{ layout_type }}"
     class="YMM_Ftmnt"
     dehydrated
     state="none pending"
