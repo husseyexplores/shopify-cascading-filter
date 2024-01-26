@@ -89,7 +89,7 @@ Attributes:
     dehydrated
     state="none pending"
     root-url="{{ root_url }}"
-    auto-submit
+    auto-submit="true"
     showing="facet"
     collection-handle="{{ collection_handle }}">
 
@@ -101,7 +101,8 @@ Attributes:
     <form data-ymm-filter data-param="{{ ymm_filter.param_name }}">
       <div class="YMM_Select-item">
         <label>Year</label>
-        <select
+        <select 
+          required
           disabled
           key="year"
           sort="desc"
@@ -115,14 +116,14 @@ Attributes:
 
       <div class="YMM_Select-item">
         <label>Make</label>
-        <select disabled key="make">
+        <select required disabled key="make">
           <option value="">Make</option>
         </select>
       </div>
 
       <div class="YMM_Select-item">
         <label>Model</label>
-        <select disabled key="model">
+        <select required disabled key="model">
           <option value="">Model</option>
         </select>
       </div>
@@ -178,7 +179,7 @@ Render fitment
     state="none pending"
     root-url="{{ root_url }}"
     showing="facet"
-    auto-submit
+    auto-submit="true"
     {% if product %}fits='{{ fitment_list | json }}'{% endif %}>
 
     {{ filter_json_script }}
@@ -186,7 +187,8 @@ Render fitment
     <div class="YMM_Selects YMM_Ftmnt-facet">
       <div class="YMM_Select-item">
         <label>Year</label>
-        <select
+        <select 
+          required
           disabled
           key="year"
           sort="desc"
@@ -200,14 +202,14 @@ Render fitment
 
       <div class="YMM_Select-item">
         <label>Make</label>
-        <select disabled key="make">
+        <select required disabled key="make">
           <option value="">Make</option>
         </select>
       </div>
 
       <div class="YMM_Select-item">
         <label>Model</label>
-        <select disabled key="model">
+        <select required disabled key="model">
           <option value="">Model</option>
         </select>
       </div>
