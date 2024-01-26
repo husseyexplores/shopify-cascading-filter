@@ -386,7 +386,7 @@ class YMM_Filter extends HTMLElement {
     this.logger = createLogger(ELEMENT_TAG, this.hasAttribute("debug"));
     this._dispatchEvent("loading");
     this.isFitmentWidget = this.hasAttribute("fits");
-    this._autoSubmit = this.hasAttribute("auto-submit");
+    this._autoSubmit = this.getAttribute("auto-submit") === "true";
     this.rootUrl = this.getAttribute("root-url");
     if (!this.rootUrl) {
       const err = `"root-url" attribute is required`;
