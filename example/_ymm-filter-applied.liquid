@@ -1,5 +1,3 @@
-{%- assign YMM_NAMESPACE_KEY = 'custom.fitment_list' -%}
-
 {%- liquid
   assign ymm_filter_applied = false
 
@@ -13,10 +11,9 @@
     break
   endunless
 
-  assign ymm_filter_param_name = 'filter.p.m.' | append: YMM_NAMESPACE_KEY
   assign ymm_filter = false
   for filter in filters
-    if filter.param_name == ymm_filter_param_name
+    if filter.param_name == 'filter.p.m.custom.fitment_list'
       assign ymm_filter = filter
       break
     endif

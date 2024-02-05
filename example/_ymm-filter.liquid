@@ -15,8 +15,6 @@ Usage:
 > {% render '_ymm-filter', type: 'FITMENT' %}
 {% endcomment %}
 
-{%- assign YMM_NAMESPACE_KEY = 'custom.fitment_list' -%}
-
 {%- comment -%} Validate params {%- endcomment -%}
 {%- liquid
   if layout_type == blank
@@ -36,14 +34,20 @@ Usage:
   endunless
 
   assign filters = results.filters
+
+  if filters == blank or filters == nil or filters.size == 0
+    if template.name == 'product' or template.name == 'index'
+      assign filters = collections['all'].filters
+    endif
+  endif
+
   unless filters
     break
   endunless
 
-  assign ymm_filter_param_name = 'filter.p.m.' | append: YMM_NAMESPACE_KEY
   assign ymm_filter = false
   for filter in filters
-    if filter.param_name == ymm_filter_param_name
+    if filter.param_name == 'filter.p.m.custom.fitment_list'
       assign ymm_filter = filter
       break
     endif
@@ -85,6 +89,7 @@ Attributes:
 {% endcomment %}
 
 
+
 {{ 'x-ymm-filter.css' | asset_url | stylesheet_tag }}
 <script type="module" src="{{ 'x-ymm-filter.es.js' | asset_url }}" defer="defer"></script>
 
@@ -107,7 +112,7 @@ Attributes:
     <form data-ymm-filter data-param="{{ ymm_filter.param_name }}">
       <div class="YMM_Select-item">
         <label>Year</label>
-        <select 
+        <select
           required
           disabled
           key="year"
@@ -131,6 +136,13 @@ Attributes:
         <label>Model</label>
         <select required disabled key="model">
           <option value="">Model</option>
+        </select>
+      </div>
+
+      <div class="YMM_Select-item">
+        <label>Trim</label>
+        <select required disabled key="trim">
+          <option value="">Trim</option>
         </select>
       </div>
 
@@ -163,7 +175,7 @@ Render fitment
       break
     endunless
 
-    assign FITMENT_NS_PARTS = YMM_NAMESPACE_KEY | split: '.'
+    assign FITMENT_NS_PARTS = 'filter.p.m.custom.fitment_list' | remove_first: 'filter.p.m.'  | split: '.'
     assign FITMENT_NAMESAPCE = FITMENT_NS_PARTS[0]
     assign FITMENT_KEY = FITMENT_NS_PARTS[1]
     assign fitment_list = product.metafields[FITMENT_NAMESAPCE][FITMENT_KEY].value
@@ -193,7 +205,7 @@ Render fitment
     <div class="YMM_Selects YMM_Ftmnt-facet">
       <div class="YMM_Select-item">
         <label>Year</label>
-        <select 
+        <select
           required
           disabled
           key="year"
@@ -217,6 +229,13 @@ Render fitment
         <label>Model</label>
         <select required disabled key="model">
           <option value="">Model</option>
+        </select>
+      </div>
+
+      <div class="YMM_Select-item">
+        <label>Trim</label>
+        <select required disabled key="trim">
+          <option value="">Trim</option>
         </select>
       </div>
 
