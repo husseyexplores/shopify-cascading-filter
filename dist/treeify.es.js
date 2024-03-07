@@ -1,5 +1,5 @@
-const CURRENT_URL = new URLSearchParams(window.location.search);
-CURRENT_URL.has("_debug_");
+const CURRENT_URL = new URL(window.location.href);
+CURRENT_URL.searchParams.has("_debug_");
 const typeOf = (x) => Object.prototype.toString.call(x).slice(8, -1);
 const isObject = (x) => typeOf(x) === "Object";
 function getNumberRange(input, maxRange = Infinity) {

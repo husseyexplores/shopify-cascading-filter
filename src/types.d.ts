@@ -7,6 +7,7 @@ export type Logger = {
 
 export type KeyParsed = {
   key: string
+  index: number
   sort: 'asc' | 'desc'
   ranged: boolean
   maxRange: number | null

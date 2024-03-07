@@ -1,6 +1,24 @@
-import { typeOf, reduce, $q, createLogger, memoize, removeTrailingSlash } from './utils'
+import {
+  typeOf,
+  reduce,
+  $q,
+  createLogger,
+  memoize,
+  removeTrailingSlash,
+  CURRENT_URL,
+  parseIndexToList,
+} from './utils'
 import { treeify as _treeify, SYM_KEYS, getAllKeysFromElement } from './filter'
 import * as ls from './local-storage'
+
+/**
+ * @typedef {import('./types').PossibleSelection} PossibleSelection
+ * @typedef {import('./types').Logger} Logger
+ * @typedef {import('./types').ItemWithInfo} ItemWithInfo
+ * @typedef {import('./types').ItemWithInfoHash} ItemWithInfoHash
+ * @typedef {import('./types').ItemWithAllValues} ItemWithAllValues
+ * @typedef {import('./types').KeyParsed} KeyParsed
+ */
 
 // Fitment Delimeter
 const _FD_ = '_'
@@ -14,6 +32,13 @@ export class YMM_Filter extends HTMLElement {
   }
 
   connectedCallback() {
+    this.hydrate()
+  }
+  disconnectedCallback() {
+    this.dehydrate()
+  }
+
+  hydrate({ ymm_sort } = {}) {
     if (!this.isConnected) return
 
     this._ac?.abort()
@@ -39,7 +64,14 @@ export class YMM_Filter extends HTMLElement {
     ls.set('collectionHandle', this.collectionHandle)
 
     this.rootCollectionHandle = `${this.rootUrl}/collections/${this.collectionHandle}`
-    this.keys = getAllKeysFromElement(this)
+    const keysIndexSortOrder = parseIndexToList(
+      ymm_sort ??
+        this.ymm_sort ??
+        CURRENT_URL.searchParams.get('ymm-sort') ??
+        this.getAttribute('ymm-sort'),
+    )
+
+    this.keys = getAllKeysFromElement(this, keysIndexSortOrder)
     this.itemToInfo = YMM_Filter.parsefitmentInfoByKeys.bind(null, this.keys)
 
     if (this.keys.length < 2) {
@@ -115,11 +147,11 @@ export class YMM_Filter extends HTMLElement {
     this._hydrated = true
     this.removeAttribute('dehydrated')
     this._dispatchEvent('loaded', {
-      selectedValues: this.selectedOptionsNullable
+      selectedValues: this.selectedOptionsNullable,
     })
   }
 
-  disconnectedCallback() {
+  dehydrate() {
     this._hydrated = false
     this._ac?.abort()
     this._ac = null
@@ -134,7 +166,10 @@ export class YMM_Filter extends HTMLElement {
       // Make sure first option is 'reset'
       if (select.options.length !== 1 || firstOption?.value !== '') {
         select.options.length = 0
-        select.options[0] = new Option(this.keys[selectIndex].key, '')
+        select.options[0] = new Option(
+          !firstOption.value ? firstOption.textContent : this.keys[selectIndex].key,
+          '',
+        )
       }
 
       // If it's first select, then add the values
@@ -607,16 +642,16 @@ YMM_Filter.state = {
  *    info: { year: '2012-24', make: 'Dodge', model: 'Charger' },
  *    value: '2012-2014_DODGE_CHARGER'
  * }`
- * @param {*} keys
+ * @param {KeyParsed[]} keys
  * @param {*} fitment
  * @returns
  */
 YMM_Filter.parsefitmentInfoByKeys = (keys, fitment) => {
   const parts = fitment.split(_FD_)
-  const info = keys.reduce((acc, k, i) => {
-    acc[k.key] = parts[i]
+  const info = keys.reduce((acc, k) => {
+    acc[k.key] = parts[k.index]
     return acc
-  }, Object.create(null))
+  }, {})
   return { info, value: fitment }
 }
 

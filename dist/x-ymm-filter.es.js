@@ -23,8 +23,8 @@ function o(t) {
   }
   return f ? t.toJSON() : c == "symbol" ? t.toString() : c == "string" ? JSON.stringify(t) : "" + t;
 }
-const CURRENT_URL = new URLSearchParams(window.location.search);
-const DEV = CURRENT_URL.has("_debug_");
+const CURRENT_URL = new URL(window.location.href);
+const DEV = CURRENT_URL.searchParams.has("_debug_");
 const PROD = !DEV;
 const env = {
   DEV,
@@ -157,6 +157,57 @@ function memoize(fn, memoizedArgsIndices) {
 function removeTrailingSlash(url) {
   return url.endsWith("/") ? url.slice(0, -1) : url;
 }
+function maybeIndex(x) {
+  return typeof x === "number" && !Number.isNaN(x) && Number.isInteger(x) && x >= 0;
+}
+function parseIndexToList(rawSortKeyIndexesString, toList = (list) => list.split(",")) {
+  const list = rawSortKeyIndexesString && typeof rawSortKeyIndexesString === "string" ? toList(rawSortKeyIndexesString) : Array.isArray(rawSortKeyIndexesString) ? rawSortKeyIndexesString : null;
+  if (!list)
+    return void 0;
+  for (let i2 = 0; i2 < list.length; i2++) {
+    const int = Number(list[i2]);
+    if (!maybeIndex(int))
+      return void 0;
+    list[i2] = int;
+  }
+  return list;
+}
+function getSwapEl(el) {
+  return el.closest(".YMM_Select-item") || el;
+}
+function sortKeyNodes(keyElements, sortOrder) {
+  if (sortOrder && sortOrder.length === keyElements.length) {
+    for (let i2 = 0; i2 < sortOrder.length; i2++) {
+      const partIndex = sortOrder[i2];
+      if (i2 === partIndex)
+        continue;
+      const el = keyElements.find((el2) => el2.getAttribute("part-index") === partIndex.toString());
+      if (!el)
+        throw new Error(`Invalid or missing part index: ${partIndex}`);
+      const elAtIndex = keyElements[i2];
+      if (elAtIndex !== el) {
+        swapNodes(getSwapEl(elAtIndex), getSwapEl(el));
+        swapListItems(keyElements, i2, partIndex);
+      }
+    }
+  }
+}
+function swapNodes(node1, node2) {
+  const afterNode2 = node2.nextElementSibling;
+  const parent = node2.parentNode;
+  if (node1 === afterNode2) {
+    parent.insertBefore(node1, node2);
+  } else {
+    node1.replaceWith(node2);
+    parent.insertBefore(node1, afterNode2);
+  }
+}
+function swapListItems(list, index1, index2) {
+  const item1 = list[index1];
+  const item2 = list[index2];
+  list[index1] = item2;
+  list[index2] = item1;
+}
 const SYM_KEYS = Symbol("OBJECT_KEYS");
 function iterateOverTree(obj, fn, level = 0) {
   if (isObject(obj)) {
@@ -238,9 +289,14 @@ function treeify$1({ keys, list, itemToInfo }) {
     }
   });
 }
-function getAllKeysFromElement(element) {
+function getAllKeysFromElement(element, keySortOrder) {
   const stash = /* @__PURE__ */ new Map();
-  element.querySelectorAll("[key]").forEach((el) => {
+  let keyEls = Array.from(element.querySelectorAll("[key]"));
+  if (keySortOrder && keySortOrder.length === keyEls.length) {
+    sortKeyNodes(keyEls, keySortOrder);
+    keyEls = Array.from(element.querySelectorAll("[key]"));
+  }
+  keyEls.forEach((el) => {
     var _a, _b, _c, _d;
     const key = (_a = el.getAttribute("key")) == null ? void 0 : _a.trim();
     if (key && !stash.has(key)) {
@@ -254,6 +310,11 @@ function getAllKeysFromElement(element) {
         /** @type {KeyParsed["ranged"]} */
         el.hasAttribute("ranged")
       );
+      const index = Number(el.getAttribute("part-index") || "missing");
+      if (Number.isNaN(index) || !Number.isInteger(index) || index < 0) {
+        console.error(`Invalid index: ${index}`, el);
+        throw new Error(`Invalid index: ${index}`);
+      }
       const maxRange = toNumber((_c = el.getAttribute("max-range")) == null ? void 0 : _c.trim(), {
         to: "float",
         canThrow: false,
@@ -265,10 +326,10 @@ function getAllKeysFromElement(element) {
         fallback: 1
       }) ?? 1;
       const numeric = el.hasAttribute("numeric");
-      stash.set(key, { key, sort, ranged, maxRange, step, numeric });
+      stash.set(key, { key, index, sort, ranged, maxRange, step, numeric });
     }
   });
-  const list = [...stash.entries()].map(([key, elKey]) => elKey);
+  const list = [...stash.entries()].map(([key, keyParsed]) => keyParsed);
   return list;
 }
 function expandList({ keys, list, itemToInfo }) {
@@ -377,6 +438,12 @@ class YMM_Filter extends HTMLElement {
     this._updateSelect = this._updateSelect.bind(this);
   }
   connectedCallback() {
+    this.hydrate();
+  }
+  disconnectedCallback() {
+    this.dehydrate();
+  }
+  hydrate({ ymm_sort } = {}) {
     var _a, _b, _c;
     if (!this.isConnected)
       return;
@@ -397,7 +464,10 @@ class YMM_Filter extends HTMLElement {
     this.collectionHandle = this.getAttribute("collection-handle") ?? get("collectionHandle") ?? "all";
     set("collectionHandle", this.collectionHandle);
     this.rootCollectionHandle = `${this.rootUrl}/collections/${this.collectionHandle}`;
-    this.keys = getAllKeysFromElement(this);
+    const keysIndexSortOrder = parseIndexToList(
+      ymm_sort ?? this.ymm_sort ?? CURRENT_URL.searchParams.get("ymm-sort") ?? this.getAttribute("ymm-sort")
+    );
+    this.keys = getAllKeysFromElement(this, keysIndexSortOrder);
     this.itemToInfo = YMM_Filter.parsefitmentInfoByKeys.bind(null, this.keys);
     if (this.keys.length < 2) {
       const err = `There should be at least 2 keys`;
@@ -453,7 +523,7 @@ class YMM_Filter extends HTMLElement {
       selectedValues: this.selectedOptionsNullable
     });
   }
-  disconnectedCallback() {
+  dehydrate() {
     var _a;
     this._hydrated = false;
     (_a = this._ac) == null ? void 0 : _a.abort();
@@ -465,7 +535,10 @@ class YMM_Filter extends HTMLElement {
       let firstOption = select.options[0];
       if (select.options.length !== 1 || (firstOption == null ? void 0 : firstOption.value) !== "") {
         select.options.length = 0;
-        select.options[0] = new Option(this.keys[selectIndex].key, "");
+        select.options[0] = new Option(
+          !firstOption.value ? firstOption.textContent : this.keys[selectIndex].key,
+          ""
+        );
       }
       if (selectIndex === 0) {
         const firstSelectOptionValues = this.tree[SYM_KEYS];
@@ -817,10 +890,10 @@ YMM_Filter.state = {
 };
 YMM_Filter.parsefitmentInfoByKeys = (keys, fitment) => {
   const parts = fitment.split(_FD_);
-  const info = keys.reduce((acc, k, i2) => {
-    acc[k.key] = parts[i2];
+  const info = keys.reduce((acc, k) => {
+    acc[k.key] = parts[k.index];
     return acc;
-  }, /* @__PURE__ */ Object.create(null));
+  }, {});
   return { info, value: fitment };
 };
 YMM_Filter.tag = ELEMENT_TAG;

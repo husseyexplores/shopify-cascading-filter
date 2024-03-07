@@ -1,5 +1,5 @@
 // @ts-check
-import { isObject, getNumberRange, toNumber, filterUntil } from './utils'
+import { isObject, getNumberRange, toNumber, filterUntil, sortKeyNodes } from './utils'
 
 export const SYM_KEYS = Symbol('OBJECT_KEYS')
 export const SYM_DEPTH = Symbol('OBJECT_DEPTH')
@@ -156,18 +156,35 @@ export function treeify({ keys, list, itemToInfo }) {
 /**
  *
  * @param {HTMLElement} element
+ * @param {number[] | undefined} keySortOrder key sort order by part index
  * @returns {KeyParsed[]}
  */
-export function getAllKeysFromElement(element) {
+export function getAllKeysFromElement(element, keySortOrder) {
   /** @type {Map<string, KeyParsed>} */
   const stash = new Map()
-  element.querySelectorAll('[key]').forEach(el => {
+  let keyEls = Array.from(element.querySelectorAll('[key]'))
+
+  if (keySortOrder && keySortOrder.length === keyEls.length) {
+    sortKeyNodes(keyEls, keySortOrder)
+
+    // must reselect the elements after sorting
+    keyEls = Array.from(element.querySelectorAll('[key]'))
+  }
+
+  keyEls.forEach(el => {
     const key = el.getAttribute('key')?.trim()
     if (key && !stash.has(key)) {
       let sort = /** @type {KeyParsed["sort"]} */ (el.getAttribute('sort')?.trim())
       if (sort !== 'desc') sort = 'asc'
 
       let ranged = /** @type {KeyParsed["ranged"]} */ el.hasAttribute('ranged')
+
+      /** @type {KeyParsed["index"]} */
+      const index = Number(el.getAttribute('part-index') || 'missing')
+      if (Number.isNaN(index) || !Number.isInteger(index) || index < 0) {
+        console.error(`Invalid index: ${index}`, el)
+        throw new Error(`Invalid index: ${index}`)
+      }
 
       /** @type {number| null} */
       const maxRange =
@@ -184,11 +201,12 @@ export function getAllKeysFromElement(element) {
         }) ?? 1
 
       const numeric = el.hasAttribute('numeric')
-      stash.set(key, { key, sort, ranged, maxRange: maxRange, step, numeric })
+      stash.set(key, { key, index, sort, ranged, maxRange: maxRange, step, numeric })
     }
   })
 
-  const list = [...stash.entries()].map(([key, elKey]) => elKey)
+  const list = [...stash.entries()].map(([key, keyParsed]) => keyParsed)
+
   return list
 }
 

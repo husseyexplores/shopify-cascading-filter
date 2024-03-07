@@ -1,7 +1,7 @@
 import hash from 'stable-hash'
 
-const CURRENT_URL = new URLSearchParams(window.location.search)
-const DEV = import.meta.env.MODE !== 'production' || CURRENT_URL.has('_debug_')
+export const CURRENT_URL = new URL(window.location.href)
+const DEV = import.meta.env.MODE !== 'production' || CURRENT_URL.searchParams.has('_debug_')
 const PROD = !DEV
 export const env = {
   DEV,
@@ -412,4 +412,85 @@ export const M = {
 
 export function removeTrailingSlash(url) {
   return url.endsWith('/') ? url.slice(0, -1) : url
+}
+
+function maybeIndex(x) {
+  return typeof x === 'number' && !Number.isNaN(x) && Number.isInteger(x) && x >= 0
+}
+
+/**
+ * @param {string | number[]} rawSortKeyIndexesString
+ * @param {(list: string) => string[]} toList
+ * @returns {number[] | undefined}
+ */
+export function parseIndexToList(rawSortKeyIndexesString, toList = list => list.split(',')) {
+  const list =
+    rawSortKeyIndexesString && typeof rawSortKeyIndexesString === 'string'
+      ? toList(rawSortKeyIndexesString)
+      : Array.isArray(rawSortKeyIndexesString)
+      ? rawSortKeyIndexesString
+      : null
+
+  if (!list) return undefined
+
+  for (let i = 0; i < list.length; i++) {
+    const int = Number(list[i])
+    if (!maybeIndex(int)) return undefined
+    list[i] = int
+  }
+
+  return list
+}
+
+function getSwapEl(el) {
+  return el.closest('.YMM_Select-item') || el
+}
+
+/**
+ *
+ * @param {(HTMLElement | Element)[]} keyElements
+ * @param {number[] | undefined} sortOrder
+ */
+export function sortKeyNodes(keyElements, sortOrder) {
+  if (sortOrder && sortOrder.length === keyElements.length) {
+    for (let i = 0; i < sortOrder.length; i++) {
+      const partIndex = sortOrder[i]
+      if (i === partIndex) continue
+
+      const el = keyElements.find(el => el.getAttribute('part-index') === partIndex.toString())
+
+      if (!el) throw new Error(`Invalid or missing part index: ${partIndex}`)
+      const elAtIndex = keyElements[i]
+
+      if (elAtIndex !== el) {
+        // swap els
+        swapNodes(getSwapEl(elAtIndex), getSwapEl(el))
+        swapListItems(keyElements, i, partIndex)
+      }
+    }
+  }
+}
+
+/**
+ *
+ * @param {HTMLElement} node1
+ * @param {HTMLElement} node2
+ */
+export function swapNodes(node1, node2) {
+  const afterNode2 = node2.nextElementSibling
+  const parent = node2.parentNode
+  //if (false) {
+  if (node1 === afterNode2) {
+    parent.insertBefore(node1, node2)
+  } else {
+    node1.replaceWith(node2)
+    parent.insertBefore(node1, afterNode2)
+  }
+}
+
+function swapListItems(list, index1, index2) {
+  const item1 = list[index1]
+  const item2 = list[index2]
+  list[index1] = item2
+  list[index2] = item1
 }
