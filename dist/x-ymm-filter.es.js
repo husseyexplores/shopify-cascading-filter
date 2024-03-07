@@ -408,7 +408,7 @@ function remove(key) {
 function get(key) {
   const _key = createKey(key);
   let now = Date.now();
-  let expiresIn = Number(window.localStorage.getItem(expiryKey(_key)) || "0");
+  let expiresIn = Number(window.localStorage.getItem(expiryKey(_key)) || now + 1);
   if (expiresIn < now) {
     remove(_key);
     return null;
