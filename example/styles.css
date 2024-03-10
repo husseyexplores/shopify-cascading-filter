@@ -347,8 +347,18 @@
 .YMM_Ftmnt-result-footer {
   margin-top: 8px;
 }
+
+/* sr-only */
 .YMM_Ftmnt-facet label {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 .YMM_Ftmnt-facet select {
   width: 100%;
