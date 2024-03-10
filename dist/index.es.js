@@ -261,41 +261,34 @@ function parseIndexToList(rawSortKeyIndexesString, toList = (list) => list.split
   }
   return list;
 }
-function getSwapEl(el) {
-  return el.closest(".YMM_Select-item") || el;
-}
-function sortKeyNodes(keyElements, sortOrder) {
-  if (sortOrder && sortOrder.length === keyElements.length) {
-    for (let i2 = 0; i2 < sortOrder.length; i2++) {
-      const partIndex = sortOrder[i2];
-      if (i2 === partIndex)
-        continue;
-      const el = keyElements.find((el2) => el2.getAttribute("part-index") === partIndex.toString());
-      if (!el)
-        throw new Error(`Invalid or missing part index: ${partIndex}`);
-      const elAtIndex = keyElements[i2];
-      if (elAtIndex !== el) {
-        swapNodes(getSwapEl(elAtIndex), getSwapEl(el));
-        swapListItems(keyElements, i2, partIndex);
+function sortKeyNodes(keyElements, comparatorFn, getElementToSwapFn = (x) => x) {
+  if (!comparatorFn)
+    comparatorFn = (a, b) => {
+      const aPartIndex = Number(a.getAttribute("part-index"));
+      const bPartIndex = Number(b.getAttribute("part-index"));
+      if (Number.isNaN(aPartIndex) || !Number.isInteger(aPartIndex) || aPartIndex < 0) {
+        console.error(`Invalid or missing part index: ${aPartIndex}`, a);
+        throw new Error(`Invalid part index: ${aPartIndex}`);
+      }
+      if (Number.isNaN(bPartIndex) || !Number.isInteger(bPartIndex) || bPartIndex < 0) {
+        console.error(`Invalid or missing part index: ${bPartIndex}`, a);
+        throw new Error(`Invalid part index: ${bPartIndex}`);
+      }
+      return aPartIndex - bPartIndex;
+    };
+  let sorted = false;
+  while (!sorted) {
+    sorted = true;
+    for (let i2 = 0; i2 < keyElements.length - 1; i2++) {
+      if (comparatorFn(keyElements[i2], keyElements[i2 + 1]) > 0) {
+        const elementA = getElementToSwapFn(keyElements[i2]);
+        const elementB = getElementToSwapFn(keyElements[i2 + 1]);
+        [keyElements[i2], keyElements[i2 + 1]] = [keyElements[i2 + 1], keyElements[i2]];
+        elementA.parentNode.insertBefore(elementB, elementA);
+        sorted = false;
       }
     }
   }
-}
-function swapNodes(node1, node2) {
-  const afterNode2 = node2.nextElementSibling;
-  const parent = node2.parentNode;
-  if (node1 === afterNode2) {
-    parent.insertBefore(node1, node2);
-  } else {
-    node1.replaceWith(node2);
-    parent.insertBefore(node1, afterNode2);
-  }
-}
-function swapListItems(list, index1, index2) {
-  const item1 = list[index1];
-  const item2 = list[index2];
-  list[index1] = item2;
-  list[index2] = item1;
 }
 const SYM_KEYS = Symbol("OBJECT_KEYS");
 const isValidValue = (x) => x != null && x !== "";
@@ -383,7 +376,31 @@ function getAllKeysFromElement(element, keySortOrder) {
   const stash = /* @__PURE__ */ new Map();
   let keyEls = Array.from(element.querySelectorAll("[key]"));
   if (keySortOrder && keySortOrder.length === keyEls.length) {
-    sortKeyNodes(keyEls, keySortOrder);
+    sortKeyNodes(
+      keyEls,
+      (a, b) => {
+        const aPartIndex = Number(a.getAttribute("part-index"));
+        const bPartIndex = Number(b.getAttribute("part-index"));
+        if (Number.isNaN(aPartIndex) || !Number.isInteger(aPartIndex) || aPartIndex < 0) {
+          console.error(`Invalid or missing part index: ${aPartIndex}`, a);
+          throw new Error(`Invalid part index: ${aPartIndex}`);
+        }
+        if (Number.isNaN(bPartIndex) || !Number.isInteger(bPartIndex) || bPartIndex < 0) {
+          console.error(`Invalid or missing part index: ${bPartIndex}`, a);
+          throw new Error(`Invalid part index: ${bPartIndex}`);
+        }
+        const aIndex = keySortOrder.indexOf(aPartIndex);
+        const bIndex = keySortOrder.indexOf(bPartIndex);
+        if (aIndex === -1 && bIndex === -1)
+          return 0;
+        if (aIndex === -1)
+          return 1;
+        if (bIndex === -1)
+          return -1;
+        return aIndex - bIndex;
+      },
+      (el) => el.closest(".YMM_Select-item") || el
+    );
     keyEls = Array.from(element.querySelectorAll("[key]"));
   }
   keyEls.forEach((el) => {
@@ -716,7 +733,11 @@ class YMM_Filter extends HTMLElement {
     const keysIndexSortOrder = parseIndexToList(
       ymm_sort ?? this.ymm_sort ?? CURRENT_URL.searchParams.get("ymm-sort") ?? this.getAttribute("ymm-sort")
     );
+    this.ymm_sort_resolved = keysIndexSortOrder;
     this.keys = getAllKeysFromElement(this, keysIndexSortOrder);
+    if (!this.ymm_sort_resolved) {
+      this.ymm_sort_resolved = this.keys.map((x) => x.partIndex);
+    }
     this.itemToInfo = YMM_Filter.parsefitmentInfoByKeys.bind(null, this.keys);
     if (this.keys.length < 2) {
       const err = `There should be at least 2 keys`;

@@ -165,7 +165,29 @@ export function getAllKeysFromElement(element, keySortOrder) {
   let keyEls = Array.from(element.querySelectorAll('[key]'))
 
   if (keySortOrder && keySortOrder.length === keyEls.length) {
-    sortKeyNodes(keyEls, keySortOrder)
+    sortKeyNodes(
+      keyEls,
+      (a, b) => {
+        const aPartIndex = Number(a.getAttribute('part-index'))
+        const bPartIndex = Number(b.getAttribute('part-index'))
+        if (Number.isNaN(aPartIndex) || !Number.isInteger(aPartIndex) || aPartIndex < 0) {
+          console.error(`Invalid or missing part index: ${aPartIndex}`, a)
+          throw new Error(`Invalid part index: ${aPartIndex}`)
+        }
+        if (Number.isNaN(bPartIndex) || !Number.isInteger(bPartIndex) || bPartIndex < 0) {
+          console.error(`Invalid or missing part index: ${bPartIndex}`, a)
+          throw new Error(`Invalid part index: ${bPartIndex}`)
+        }
+
+        const aIndex = keySortOrder.indexOf(aPartIndex)
+        const bIndex = keySortOrder.indexOf(bPartIndex)
+        if (aIndex === -1 && bIndex === -1) return 0
+        if (aIndex === -1) return 1
+        if (bIndex === -1) return -1
+        return aIndex - bIndex
+      },
+      el => el.closest('.YMM_Select-item') || el,
+    )
 
     // must reselect the elements after sorting
     keyEls = Array.from(element.querySelectorAll('[key]'))

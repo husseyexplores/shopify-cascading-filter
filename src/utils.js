@@ -451,7 +451,7 @@ function getSwapEl(el) {
  * @param {(HTMLElement | Element)[]} keyElements
  * @param {number[] | undefined} sortOrder
  */
-export function sortKeyNodes(keyElements, sortOrder) {
+function _sortKeyNodes(keyElements, sortOrder) {
   if (sortOrder && sortOrder.length === keyElements.length) {
     for (let i = 0; i < sortOrder.length; i++) {
       const partIndex = sortOrder[i]
@@ -493,4 +493,43 @@ function swapListItems(list, index1, index2) {
   const item2 = list[index2]
   list[index1] = item2
   list[index2] = item1
+}
+
+export function sortKeyNodes(keyElements, comparatorFn, getElementToSwapFn = (x) => x) {
+  if (!comparatorFn)
+    comparatorFn = (a, b) => {
+      const aPartIndex = Number(a.getAttribute('part-index'))
+      const bPartIndex = Number(b.getAttribute('part-index'))
+      if (Number.isNaN(aPartIndex) || !Number.isInteger(aPartIndex) || aPartIndex < 0) {
+        console.error(`Invalid or missing part index: ${aPartIndex}`, a)
+        throw new Error(`Invalid part index: ${aPartIndex}`)
+      }
+      if (Number.isNaN(bPartIndex) || !Number.isInteger(bPartIndex) || bPartIndex < 0) {
+        console.error(`Invalid or missing part index: ${bPartIndex}`, a)
+        throw new Error(`Invalid part index: ${bPartIndex}`)
+      }
+
+      return aPartIndex - bPartIndex
+    }
+
+  let sorted = false
+  while (!sorted) {
+    sorted = true
+    for (let i = 0; i < keyElements.length - 1; i++) {
+      if (comparatorFn(keyElements[i], keyElements[i + 1]) > 0) {
+        // Get the elements to swap
+        const elementA = getElementToSwapFn(keyElements[i]);
+        const elementB = getElementToSwapFn(keyElements[i + 1]);
+
+        // Swap elements in the array
+        [keyElements[i], keyElements[i + 1]] = [keyElements[i + 1], keyElements[i]];
+
+        // Swap elements in the DOM
+        elementA.parentNode.insertBefore(elementB, elementA);
+        // elementA.parentNode.insertBefore(elementA, elementB);
+
+        sorted = false;
+      }
+    }
+  }
 }

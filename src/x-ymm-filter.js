@@ -71,7 +71,12 @@ export class YMM_Filter extends HTMLElement {
         this.getAttribute('ymm-sort'),
     )
 
+    this.ymm_sort_resolved = keysIndexSortOrder
     this.keys = getAllKeysFromElement(this, keysIndexSortOrder)
+    if (!this.ymm_sort_resolved) {
+      this.ymm_sort_resolved = this.keys.map(x => x.partIndex)
+    }
+
     this.itemToInfo = YMM_Filter.parsefitmentInfoByKeys.bind(null, this.keys)
 
     if (this.keys.length < 2) {
@@ -678,3 +683,13 @@ function isValidOptionValue(value) {
   if (typeof value === 'string' && value !== '') return true
   return false
 }
+
+// Ordered selected values
+/*
+ const sortOrder = ymmEl.ymm_sort_resolved
+  let selectedValuesOrdered = []
+  for (let i = 0; i < sortOrder.length; i++) {
+    const index = sortOrder[i];
+    selectedValuesOrdered[index] = selectedValues[i];
+  }
+*/
