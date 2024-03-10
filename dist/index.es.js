@@ -1107,7 +1107,24 @@ class YMM_Filter extends HTMLElement {
     this.setAttribute("showing", show);
   }
   _updateFilteredTitleElements() {
-    const title = this._allSelected ? this.selectedOptions.join(" ") : "";
+    let title = "";
+    if (this._allSelected) {
+      let selectedOptions = this.selectedOptions;
+      const sortOrder = this.ymm_sort_resolved;
+      let selectedValuesOrdered = [];
+      for (let i2 = 0; i2 < sortOrder.length; i2++) {
+        const index = sortOrder[i2];
+        selectedValuesOrdered[index] = selectedOptions[i2];
+      }
+      selectedOptions = selectedValuesOrdered;
+      if (selectedOptions.length <= 3) {
+        title = selectedOptions.join(" ");
+      } else {
+        const firstThree = selectedOptions.slice(0, 3).join(" ");
+        const rest = selectedOptions.slice(3).join(" - ");
+        title = `${firstThree} - ${rest}`;
+      }
+    }
     this.els.filteredTitleText((el) => {
       el.textContent = title;
     });

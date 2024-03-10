@@ -576,7 +576,29 @@ export class YMM_Filter extends HTMLElement {
   }
 
   _updateFilteredTitleElements() {
-    const title = this._allSelected ? this.selectedOptions.join(' ') : ''
+    let title = ''
+    if (this._allSelected) {
+      let selectedOptions = this.selectedOptions
+      // title = selectedOptions.join(' ')
+
+      // Always order the title by the part-index sort order
+      const sortOrder = this.ymm_sort_resolved
+      let selectedValuesOrdered = []
+      for (let i = 0; i < sortOrder.length; i++) {
+        const index = sortOrder[i];
+        selectedValuesOrdered[index] = selectedOptions[i];
+      }
+      selectedOptions = selectedValuesOrdered
+
+      if (selectedOptions.length <= 3) {
+        title = selectedOptions.join(" ");
+      } else {
+        const firstThree = selectedOptions.slice(0, 3).join(" ");
+        const rest = selectedOptions.slice(3).join(" - ");
+        title = `${firstThree} - ${rest}`;
+      }
+    }
+
     this.els.filteredTitleText(el => {
       el.textContent = title
     })
