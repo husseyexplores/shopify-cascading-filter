@@ -74,7 +74,7 @@ export class YMM_Filter extends HTMLElement {
     this.ymm_sort_resolved = keysIndexSortOrder
     this.keys = getAllKeysFromElement(this, keysIndexSortOrder)
     if (!this.ymm_sort_resolved) {
-      this.ymm_sort_resolved = this.keys.map(x => x.partIndex)
+      this.ymm_sort_resolved = this.keys.map(x => x.index)
     }
 
     this.itemToInfo = YMM_Filter.parsefitmentInfoByKeys.bind(null, this.keys)
@@ -585,17 +585,17 @@ export class YMM_Filter extends HTMLElement {
       const sortOrder = this.ymm_sort_resolved
       let selectedValuesOrdered = []
       for (let i = 0; i < sortOrder.length; i++) {
-        const index = sortOrder[i];
-        selectedValuesOrdered[index] = selectedOptions[i];
+        const index = sortOrder[i]
+        selectedValuesOrdered[index] = selectedOptions[i]
       }
       selectedOptions = selectedValuesOrdered
 
       if (selectedOptions.length <= 3) {
-        title = selectedOptions.join(" ");
+        title = selectedOptions.join(' ')
       } else {
-        const firstThree = selectedOptions.slice(0, 3).join(" ");
-        const rest = selectedOptions.slice(3).join(" - ");
-        title = `${firstThree} - ${rest}`;
+        const firstThree = selectedOptions.slice(0, 3).join(' ')
+        const rest = selectedOptions.slice(3).join(' - ')
+        title = `${firstThree} - ${rest}`
       }
     }
 
