@@ -736,7 +736,7 @@ class YMM_Filter extends HTMLElement {
     this.ymm_sort_resolved = keysIndexSortOrder;
     this.keys = getAllKeysFromElement(this, keysIndexSortOrder);
     if (!this.ymm_sort_resolved) {
-      this.ymm_sort_resolved = this.keys.map((x) => x.partIndex);
+      this.ymm_sort_resolved = this.keys.map((x) => x.index);
     }
     this.itemToInfo = YMM_Filter.parsefitmentInfoByKeys.bind(null, this.keys);
     if (this.keys.length < 2) {
