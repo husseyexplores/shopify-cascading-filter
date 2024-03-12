@@ -702,11 +702,20 @@ class YMM_Filter extends HTMLElement {
   constructor() {
     super();
     this._updateSelect = this._updateSelect.bind(this);
+    this._connected = false;
   }
-  connectedCallback() {
+  async connectedCallback() {
+    this._connected = true;
+    await Promise.resolve();
+    if (!this.isConnected)
+      return;
     this.hydrate();
   }
-  disconnectedCallback() {
+  async disconnectedCallback() {
+    this._connected = false;
+    await Promise.resolve();
+    if (this.isConnected)
+      return;
     this.dehydrate();
   }
   hydrate({ ymm_sort } = {}) {
@@ -800,6 +809,7 @@ class YMM_Filter extends HTMLElement {
     this._ac = null;
   }
   _setupCascadingSelects() {
+    var _a;
     const selects = this.els.selects;
     selects.forEach((select, selectIndex) => {
       let firstOption = select.options[0];
@@ -825,7 +835,12 @@ class YMM_Filter extends HTMLElement {
         { signal: this._ac.signal }
       );
     });
-    const initalSelectedOptions = reduce(
+    (_a = CURRENT_URL.searchParams.get(this.filterJson.param_name)) == null ? void 0 : _a.split(_FD_);
+    let cachedFilterValue = get(this.filterJson.param_name);
+    if (currentParam && (!cachedFilterValue || currentParam !== cachedFilterValue)) {
+      set(this.filterJson.param_name, currentParam);
+    }
+    const initialSelectedOptions = reduce(
       this.keys,
       (acc, { key }) => {
         const cachedValue = get(key);
@@ -837,7 +852,7 @@ class YMM_Filter extends HTMLElement {
       []
     );
     selects.forEach((select, selectIndex) => {
-      const initialValue = initalSelectedOptions[selectIndex] ?? "";
+      const initialValue = initialSelectedOptions[selectIndex] ?? "";
       if (isValidOptionValue(initialValue)) {
         select.value = initialValue;
         select._on_ymm_change(selectIndex, initialValue);
@@ -897,6 +912,7 @@ class YMM_Filter extends HTMLElement {
     }
     this._updateState();
     this._updateActionUrl();
+    set(this.filterJson.param_name, this.finalValue || "");
     if (this._autoSubmit && this._hydrated) {
       this._updateShowAttr("result");
     }

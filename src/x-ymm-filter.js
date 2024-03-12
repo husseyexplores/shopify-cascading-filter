@@ -213,8 +213,8 @@ export class YMM_Filter extends HTMLElement {
     let currentFilterValue = CURRENT_URL.searchParams.get(this.filterJson.param_name)?.split(_FD_)
     let cachedFilterValue = ls.get(this.filterJson.param_name)
 
-    if (currentParam && (!cachedFilterValue || currentParam !== cachedFilterValue)) {
-      ls.set(this.filterJson.param_name, currentParam)
+    if (currentFilterValue && (!cachedFilterValue || currentFilterValue !== cachedFilterValue)) {
+      ls.set(this.filterJson.param_name, currentFilterValue)
     }
 
     const initialSelectedOptions = reduce(
