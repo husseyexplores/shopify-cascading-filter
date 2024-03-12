@@ -457,20 +457,20 @@ class YMM_Filter extends HTMLElement {
   }
   async connectedCallback() {
     this._connected = true;
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 100));
     if (!this.isConnected)
       return;
     this.hydrate();
   }
   async disconnectedCallback() {
     this._connected = false;
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 100));
     if (this.isConnected)
       return;
     this.dehydrate();
   }
   hydrate({ ymm_sort } = {}) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     if (!this.isConnected)
       return;
     (_a = this._ac) == null ? void 0 : _a.abort();
@@ -508,7 +508,12 @@ class YMM_Filter extends HTMLElement {
     this.filterJson = JSON.parse(
       ((_b = this.querySelector('script[type="application/json"][data-filter-json]')) == null ? void 0 : _b.textContent) ?? "null"
     );
-    const filterJsonValues = ((_c = this.filterJson) == null ? void 0 : _c.values.map((x) => x.value)) ?? [];
+    const appliedFilterValue = (_c = this.filterJson.active_values[0]) == null ? void 0 : _c.value;
+    this.appliedFilterValue = {
+      parsed: appliedFilterValue ? appliedFilterValue.split(_FD_) : void 0,
+      value: appliedFilterValue ?? void 0
+    };
+    const filterJsonValues = ((_d = this.filterJson) == null ? void 0 : _d.values.map((x) => x.value)) ?? [];
     this.tree = this.filterJson ? treeify({
       itemToInfo: this.itemToInfo,
       keys: this.keys,
@@ -549,8 +554,16 @@ class YMM_Filter extends HTMLElement {
     this._setupUpdateShowAttr();
     this._hydrated = true;
     this.removeAttribute("dehydrated");
+    const filterAppliedButCachedValueIsDifferent = this.appliedFilterValue.value && this.finalValue && this.finalValue.every((x) => this.appliedFilterValue.value !== x);
+    if (filterAppliedButCachedValueIsDifferent) {
+      this.setAttribute("state", YMM_Filter.state.APPLIED_MISMATCH);
+    }
     this._dispatchEvent("loaded", {
-      selectedValues: this.selectedOptionsNullable
+      selectedValues: this.selectedOptionsNullable,
+      appliedValues: this.appliedFilterValue.value ? this.appliedFilterValue.parsed : void 0,
+      title: this._getTitle(
+        filterAppliedButCachedValueIsDifferent ? this.appliedFilterValue.parsed : void 0
+      )
     });
   }
   dehydrate() {
@@ -560,7 +573,6 @@ class YMM_Filter extends HTMLElement {
     this._ac = null;
   }
   _setupCascadingSelects() {
-    var _a;
     const selects = this.els.selects;
     selects.forEach((select, selectIndex) => {
       let firstOption = select.options[0];
@@ -586,10 +598,10 @@ class YMM_Filter extends HTMLElement {
         { signal: this._ac.signal }
       );
     });
-    let currentFilterValue = (_a = CURRENT_URL.searchParams.get(this.filterJson.param_name)) == null ? void 0 : _a.split(_FD_);
+    let appliedFilterValue = this.appliedFilterValue.value;
     let cachedFilterValue = get(this.filterJson.param_name);
-    if (currentFilterValue && (!cachedFilterValue || currentFilterValue !== cachedFilterValue)) {
-      set(this.filterJson.param_name, currentFilterValue);
+    if (appliedFilterValue && (!cachedFilterValue || appliedFilterValue !== cachedFilterValue)) {
+      set(this.filterJson.param_name, appliedFilterValue);
     }
     const initialSelectedOptions = reduce(
       this.keys,
@@ -873,10 +885,10 @@ class YMM_Filter extends HTMLElement {
       show = "facet";
     this.setAttribute("showing", show);
   }
-  _updateFilteredTitleElements() {
+  _getTitle(selectedOptions = this.selectedOptions) {
+    const allSelected = selectedOptions.length === this.els.selects.length;
     let title = "";
-    if (this._allSelected) {
-      let selectedOptions = this.selectedOptions;
+    if (allSelected) {
       const sortOrder = this.ymm_sort_resolved;
       let selectedValuesOrdered = [];
       for (let i2 = 0; i2 < sortOrder.length; i2++) {
@@ -892,6 +904,10 @@ class YMM_Filter extends HTMLElement {
         title = `${firstThree} - ${rest}`;
       }
     }
+    return title;
+  }
+  _updateFilteredTitleElements() {
+    const title = this._getTitle();
     this.els.filteredTitleText((el) => {
       el.textContent = title;
     });
@@ -937,6 +953,7 @@ class YMM_Filter extends HTMLElement {
 }
 YMM_Filter.state = {
   NONE: "none pending",
+  APPLIED_MISMATCH: "applied mismatch",
   PARTIAL: "partial pending",
   SELECTED: "selected",
   SELECTED_FITS: "selected fits",

@@ -102,9 +102,9 @@ export class YMM_Filter extends HTMLElement {
         'null',
     )
     const appliedFilterValue = this.filterJson.active_values[0]?.value
-    this.appliedFilterValue = appliedFilterValue ? {
-      parsed: appliedFilterValue.split(_FD_),
-      value: appliedFilterValue,
+    this.appliedFilterValue = {
+      parsed: appliedFilterValue ? appliedFilterValue.split(_FD_) : undefined,
+      value: appliedFilterValue ?? undefined,
     }
 
     const filterJsonValues = this.filterJson?.values.map(x => x.value) ?? []
@@ -166,10 +166,23 @@ export class YMM_Filter extends HTMLElement {
 
     this._hydrated = true
     this.removeAttribute('dehydrated')
+
+    // May have changed from fitment widget
+    const filterAppliedButCachedValueIsDifferent =
+      this.appliedFilterValue.value &&
+      this.finalValue &&
+      this.finalValue.every(x => this.appliedFilterValue.value !== x)
+
+    if (filterAppliedButCachedValueIsDifferent) {
+      this.setAttribute('state', YMM_Filter.state.APPLIED_MISMATCH)
+    }
+
     this._dispatchEvent('loaded', {
       selectedValues: this.selectedOptionsNullable,
-      appliedValues: this.appliedFilterValue ? this.appliedFilterValue.parsed : null,
-      title: this._getTitle(this.appliedFilterValue ? this.appliedFilterValue.parsed : undefined),
+      appliedValues: this.appliedFilterValue.value ? this.appliedFilterValue.parsed : undefined,
+      title: this._getTitle(
+        filterAppliedButCachedValueIsDifferent ? this.appliedFilterValue.parsed : undefined,
+      ),
     })
   }
 
@@ -218,6 +231,7 @@ export class YMM_Filter extends HTMLElement {
 
     // Hydrate with initial (saved) state
     // let appliedFilterValue = CURRENT_URL.searchParams.get(this.filterJson.param_name)?.split(_FD_)
+    let appliedFilterValue = this.appliedFilterValue.value
     let cachedFilterValue = ls.get(this.filterJson.param_name)
 
     if (appliedFilterValue && (!cachedFilterValue || appliedFilterValue !== cachedFilterValue)) {
@@ -602,7 +616,7 @@ export class YMM_Filter extends HTMLElement {
   }
 
   _getTitle(selectedOptions = this.selectedOptions) {
-    const allSelected = selectedOptions === this.els.selects.length
+    const allSelected = selectedOptions.length === this.els.selects.length
 
     let title = ''
     if (allSelected) {
@@ -690,6 +704,7 @@ export class YMM_Filter extends HTMLElement {
 
 YMM_Filter.state = {
   NONE: 'none pending',
+  APPLIED_MISMATCH: 'applied mismatch',
   PARTIAL: 'partial pending',
   SELECTED: 'selected',
   SELECTED_FITS: 'selected fits',
