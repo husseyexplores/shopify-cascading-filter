@@ -835,10 +835,10 @@ class YMM_Filter extends HTMLElement {
         { signal: this._ac.signal }
       );
     });
-    (_a = CURRENT_URL.searchParams.get(this.filterJson.param_name)) == null ? void 0 : _a.split(_FD_);
+    let currentFilterValue = (_a = CURRENT_URL.searchParams.get(this.filterJson.param_name)) == null ? void 0 : _a.split(_FD_);
     let cachedFilterValue = get(this.filterJson.param_name);
-    if (currentParam && (!cachedFilterValue || currentParam !== cachedFilterValue)) {
-      set(this.filterJson.param_name, currentParam);
+    if (currentFilterValue && (!cachedFilterValue || currentFilterValue !== cachedFilterValue)) {
+      set(this.filterJson.param_name, currentFilterValue);
     }
     const initialSelectedOptions = reduce(
       this.keys,

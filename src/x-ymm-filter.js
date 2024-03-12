@@ -34,7 +34,7 @@ export class YMM_Filter extends HTMLElement {
 
   async connectedCallback() {
     this._connected = true
-    await Promise.resolve()
+    await new Promise(resolve => setTimeout(resolve, 100))
     if (!this.isConnected) return
 
     this.hydrate()
@@ -42,7 +42,7 @@ export class YMM_Filter extends HTMLElement {
 
   async disconnectedCallback() {
     this._connected = false
-    await Promise.resolve()
+    await new Promise(resolve => setTimeout(resolve, 100))
     if (this.isConnected) return
 
     this.dehydrate()
@@ -101,6 +101,11 @@ export class YMM_Filter extends HTMLElement {
       this.querySelector('script[type="application/json"][data-filter-json]')?.textContent ??
         'null',
     )
+    const appliedFilterValue = this.filterJson.active_values[0]?.value
+    this.appliedFilterValue = appliedFilterValue ? {
+      parsed: appliedFilterValue.split(_FD_),
+      value: appliedFilterValue,
+    }
 
     const filterJsonValues = this.filterJson?.values.map(x => x.value) ?? []
     this.tree = this.filterJson
@@ -163,6 +168,8 @@ export class YMM_Filter extends HTMLElement {
     this.removeAttribute('dehydrated')
     this._dispatchEvent('loaded', {
       selectedValues: this.selectedOptionsNullable,
+      appliedValues: this.appliedFilterValue ? this.appliedFilterValue.parsed : null,
+      title: this._getTitle(this.appliedFilterValue ? this.appliedFilterValue.parsed : undefined),
     })
   }
 
@@ -210,11 +217,11 @@ export class YMM_Filter extends HTMLElement {
     })
 
     // Hydrate with initial (saved) state
-    let currentFilterValue = CURRENT_URL.searchParams.get(this.filterJson.param_name)?.split(_FD_)
+    // let appliedFilterValue = CURRENT_URL.searchParams.get(this.filterJson.param_name)?.split(_FD_)
     let cachedFilterValue = ls.get(this.filterJson.param_name)
 
-    if (currentFilterValue && (!cachedFilterValue || currentFilterValue !== cachedFilterValue)) {
-      ls.set(this.filterJson.param_name, currentFilterValue)
+    if (appliedFilterValue && (!cachedFilterValue || appliedFilterValue !== cachedFilterValue)) {
+      ls.set(this.filterJson.param_name, appliedFilterValue)
     }
 
     const initialSelectedOptions = reduce(
@@ -594,10 +601,12 @@ export class YMM_Filter extends HTMLElement {
     this.setAttribute('showing', show)
   }
 
-  _updateFilteredTitleElements() {
+  _getTitle(selectedOptions = this.selectedOptions) {
+    const allSelected = selectedOptions === this.els.selects.length
+
     let title = ''
-    if (this._allSelected) {
-      let selectedOptions = this.selectedOptions
+    if (allSelected) {
+      // let selectedOptions = this.selectedOptions
       // title = selectedOptions.join(' ')
 
       // Always order the title by the part-index sort order
@@ -618,6 +627,11 @@ export class YMM_Filter extends HTMLElement {
       }
     }
 
+    return title
+  }
+
+  _updateFilteredTitleElements() {
+    const title = this._getTitle()
     this.els.filteredTitleText(el => {
       el.textContent = title
     })
