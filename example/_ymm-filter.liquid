@@ -33,6 +33,7 @@ Usage:
     assign results = collection | default: search | default: collections['all']
   endunless
 
+  assign fitment_list_param_name = 'filter.p.m.custom.fitment_list'
   assign filters = results.filters
 
   if filters == blank or filters == nil or filters.size == 0
@@ -47,7 +48,7 @@ Usage:
 
   assign ymm_filter = false
   for filter in filters
-    if filter.param_name == 'filter.p.m.custom.fitment_list'
+    if filter.param_name == fitment_list_param_name
       assign ymm_filter = filter
       break
     endif
@@ -95,6 +96,7 @@ Attributes:
 
 {%- if type == 'FACET' -%}
   <x-ymm-filter
+    param-key="{{ fitment_list_param_name }}"
     data-layout-type="{{ layout_type }}"
     class="YMM_Facet"
     dehydrated
@@ -176,7 +178,7 @@ Render fitment
       break
     endunless
 
-    assign FITMENT_NS_PARTS = 'filter.p.m.custom.fitment_list' | remove_first: 'filter.p.m.'  | split: '.'
+    assign FITMENT_NS_PARTS = fitment_list_param_name | remove_first: 'filter.p.m.'  | split: '.'
     assign FITMENT_NAMESAPCE = FITMENT_NS_PARTS[0]
     assign FITMENT_KEY = FITMENT_NS_PARTS[1]
     assign fitment_list = product.metafields[FITMENT_NAMESAPCE][FITMENT_KEY].value
@@ -192,6 +194,7 @@ Render fitment
   </div>
 
   <x-ymm-filter
+    param-key="{{ fitment_list_param_name }}"
     data-layout-type="{{ layout_type }}"
     class="YMM_Ftmnt"
     dehydrated

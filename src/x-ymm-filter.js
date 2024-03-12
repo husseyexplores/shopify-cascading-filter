@@ -29,12 +29,22 @@ export class YMM_Filter extends HTMLElement {
   constructor() {
     super()
     this._updateSelect = this._updateSelect.bind(this)
+    this._connected = false
   }
 
-  connectedCallback() {
+  async connectedCallback() {
+    this._connected = true
+    await Promise.resolve()
+    if (!this.isConnected) return
+
     this.hydrate()
   }
-  disconnectedCallback() {
+
+  async disconnectedCallback() {
+    this._connected = false
+    await Promise.resolve()
+    if (this.isConnected) return
+
     this.dehydrate()
   }
 
@@ -200,7 +210,14 @@ export class YMM_Filter extends HTMLElement {
     })
 
     // Hydrate with initial (saved) state
-    const initalSelectedOptions = reduce(
+    let currentFilterValue = CURRENT_URL.searchParams.get(this.filterJson.param_name)?.split(_FD_)
+    let cachedFilterValue = ls.get(this.filterJson.param_name)
+
+    if (currentParam && (!cachedFilterValue || currentParam !== cachedFilterValue)) {
+      ls.set(this.filterJson.param_name, currentParam)
+    }
+
+    const initialSelectedOptions = reduce(
       this.keys,
       (acc, { key }) => {
         const cachedValue = ls.get(key)
@@ -212,7 +229,7 @@ export class YMM_Filter extends HTMLElement {
     )
 
     selects.forEach((select, selectIndex) => {
-      const initialValue = initalSelectedOptions[selectIndex] ?? ''
+      const initialValue = initialSelectedOptions[selectIndex] ?? ''
       if (isValidOptionValue(initialValue)) {
         select.value = initialValue
         select._on_ymm_change(selectIndex, initialValue)
@@ -297,6 +314,8 @@ export class YMM_Filter extends HTMLElement {
     this._updateState()
 
     this._updateActionUrl()
+
+    ls.set(this.filterJson.param_name, this.finalValue || '')
 
     if (this._autoSubmit && this._hydrated) {
       this._updateShowAttr('result')
