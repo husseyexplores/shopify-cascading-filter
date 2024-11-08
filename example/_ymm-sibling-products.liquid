@@ -75,7 +75,8 @@ Attributes:
         <select
           form="{{ form_uid }}"
           key="{{ key }}"
-          id="{{ field_uid }}">
+          id="{{ field_uid }}"
+          part-index="{{ forloop.index0 }}">
           {% comment %} <option value="">Select {{ key }}</option> {% endcomment %}
           <option value="{{ mf_value }}" selected>{{ mf_value }}</option>
         </select>

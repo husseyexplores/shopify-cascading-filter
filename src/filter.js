@@ -156,7 +156,7 @@ export function treeify({ keys, list, itemToInfo }) {
 /**
  *
  * @param {HTMLElement} element
- * @param {number[] | undefined} keySortOrder key sort order by part index
+ * @param {number[] | undefined} [keySortOrder] key sort order by part index
  * @returns {KeyParsed[]}
  */
 export function getAllKeysFromElement(element, keySortOrder) {

@@ -1,5 +1,5 @@
 // @ts-check
-import { treeify, getAllKeysFromElement, ReactiveFilterTree } from './filter'
+import { getAllKeysFromElement, ReactiveFilterTree } from './filter'
 import {
   createLogger,
   typeOf,
@@ -68,53 +68,8 @@ export class ProductSiblings extends HTMLElement {
   async _setupSiblings() {
     if (!this.attrs) throw new Error('"attrs" has been been parsed yet')
 
-    const siblings = await ProductSiblings.fetchSiblings(this.attrs.group)
+    const siblings = await ProductSiblings.fetchSiblings(GROUP_TAG_PREFIX + this.attrs.group)
     this.siblings = siblings
-
-    const cont = this.closest('.product')
-    const info = cont?.querySelector('product-info')
-    const priceCont = info?.querySelector('.price__container')
-
-    const mediaGallery = cont?.querySelector('media-gallery')
-    const mediaList = mediaGallery?.querySelector('.product__media-list')
-    const fitmentWidget = info?.querySelector('x-ymm-filter.YMM_Ftmnt')
-
-    /*
-    const el = {
-      title: info?.querySelector('.product__title h1'),
-      priceCont,
-      price: priceCont?.querySelector('.price-item.price-item--regular'),
-      cprice: priceCont?.querySelector('.price-item.price-item--sale'),
-      mediaGallery,
-      mediaList,
-      fitmentWidget,
-    }
-    */
-
-    // const allOptions = siblings.reduce((acc, sibling) => {
-    //   const { options, product } = sibling
-    //   if (!options) {
-    //     console.warn('Missing `options` in sibling product', {
-    //       group: this.group,
-    //       sibling,
-    //     })
-    //     return acc
-    //   }
-
-    //   Object.keys(options).forEach(key => {
-    //     const value = options[key]
-    //     if (!acc.has(key)) {
-    //       acc.set(key, new Set())
-    //     }
-    //     const set = acc.get(key)
-    //     set.add(value)
-    //   })
-
-    //   return acc
-    // }, new Map())
-
-    // this.allOptions = allOptions
-
     this.keys = getAllKeysFromElement(this)
 
     /** @type {HTMLSelectElement[]} */
@@ -126,17 +81,6 @@ export class ProductSiblings extends HTMLElement {
         throw this.logger.throw(`Expected ${this.keys.length} selects, got ${this.selects.length}`)
       }
     }
-
-    // this.tree = treeify({
-    //   keys: this.keys,
-    //   list: siblings,
-    //   itemToInfo: x => {
-    //     return {
-    //       info: x.options,
-    //       value: x.product.handle,
-    //     }
-    //   },
-    // })
 
     const reactiveTree = new ReactiveFilterTree({
       canAutoPreselect: !this.hasAttribute('no-autoselect'),
@@ -167,52 +111,6 @@ export class ProductSiblings extends HTMLElement {
 
         this._dispatchEvent('root', { root, defaultRoot, sibling: sib })
         this.logger?.debug('onRoot => ', { root, defaultRoot, handle: productHandle, sib })
-
-        /*
-        if (!sib) return
-        const { product, options } = sib
-        const c = this.closest('.product')
-
-        if (!c) return
-
-        if (el.title) el.title.textContent = product.title
-        // if (el.price) el.price.textContent = product.price
-
-        if (el.fitmentWidget) {
-          if ('fits' in el.fitmentWidget) {
-            el.fitmentWidget.fits = options.fitment
-          }
-        }
-
-        if (el.mediaList) {
-          M.fetchHtml(`/products/${product.handle}?section_id=${this.attrs.sectionId}`).then(
-            next => {
-              const nextMediaGallery = next.querySelector('media-gallery')?.cloneNode(true)
-              if (el.mediaGallery instanceof HTMLElement) {
-                if (nextMediaGallery instanceof HTMLElement) {
-                  el.mediaGallery.style.display = ''
-                  el.mediaGallery.replaceWith(nextMediaGallery)
-                  el.mediaGallery = nextMediaGallery
-                } else {
-                  el.mediaGallery.style.display = 'none'
-                }
-              }
-
-              const nextPriceCont = next.querySelector('.price__container')?.cloneNode(true)
-
-              if (el.priceCont instanceof HTMLElement) {
-                if (nextPriceCont instanceof HTMLElement) {
-                  el.priceCont.style.display = ''
-                  el.priceCont.replaceWith(nextPriceCont)
-                  el.priceCont = nextPriceCont
-                } else {
-                  el.priceCont.style.display = 'none'
-                }
-              }
-            },
-          )
-        }
-        */
       },
       onOptionsChange: selection => {
         const prevented = this._dispatchEvent('onOptionsChange', selection)

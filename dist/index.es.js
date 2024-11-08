@@ -1281,14 +1281,8 @@ class ProductSiblings extends HTMLElement {
   async _setupSiblings() {
     if (!this.attrs)
       throw new Error('"attrs" has been been parsed yet');
-    const siblings = await ProductSiblings.fetchSiblings(this.attrs.group);
+    const siblings = await ProductSiblings.fetchSiblings(GROUP_TAG_PREFIX + this.attrs.group);
     this.siblings = siblings;
-    const cont = this.closest(".product");
-    const info = cont == null ? void 0 : cont.querySelector("product-info");
-    info == null ? void 0 : info.querySelector(".price__container");
-    const mediaGallery = cont == null ? void 0 : cont.querySelector("media-gallery");
-    mediaGallery == null ? void 0 : mediaGallery.querySelector(".product__media-list");
-    info == null ? void 0 : info.querySelector("x-ymm-filter.YMM_Ftmnt");
     this.keys = getAllKeysFromElement(this);
     const selects = Array.from(this.querySelectorAll("select[key]"));
     this.selects = selects;
