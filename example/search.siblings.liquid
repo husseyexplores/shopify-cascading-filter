@@ -9,15 +9,15 @@ Example terms:
   > term*
   > product_tag
 
-Example: 
+Example:
   > /search?q=TERM*&view=siblings&type=product&page=1
   > /search?q=TERM&view=siblings&type=product&page=1
 {%- endcomment -%}
 
 {%- liquid
-  assign namespace_keys = 'wspec.style|wspec.finish|wspec.size|wspec.pcd|wspec.offset|wspec.bore' | split: '|'
+  assign namespace_keys = 'wspec.style|wspec.finish|wspec.size|wspec.pcd|wspec.offset|wspec.cbore' | split: '|'
 -%}
-
+{%- capture data -%}
 {%- paginate search.results by 500 -%}
   [
 
@@ -52,12 +52,25 @@ Example:
                 {%- unless forloop.last -%},{%- endunless -%}
               {%- endfor -%}
               ,
-              "fitment": {{ product.metafields.custom.fitment_list.value | json }}
+              "fitment": {{ product.metafields.custom.fitment_list.value | json }},
+              "makes": {{ product.metafields.custom.fitment_list_makes.value | json }},
+              "models": {{ product.metafields.custom.fitment_list_models.value | json }}
            }
         }
 
 	  {%- unless forloop.last -%},{%- endunless -%}
     {%- endfor -%}
+
+    {%- capture has_next_page -%}
+    {%- if paginate.next -%}true{% else %}false{%- endif -%}
+   {%- endcapture -%}
    {%- endif -%}
 ]
 {%- endpaginate -%}
+{%- endcapture -%}
+{
+  "data": {{ data }},
+  "pageInfo": {
+  "hasNextPage": {{has_next_page}}
+  }
+}
