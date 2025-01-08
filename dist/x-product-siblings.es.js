@@ -774,13 +774,26 @@ class ProductSiblings extends HTMLElement {
     return isCancelled;
   }
 }
-function fetchSiblings(group) {
+async function fetchSiblings(group) {
   if (!group) {
     return Promise.reject(
       new Error("Missing `group` argument, which is needed when trying to fetch siblings")
     );
   }
-  return fetchJson(`/search?view=siblings&type=product&q=${group}`);
+  let siblings = [];
+  let pageNumber = 1;
+  let url = `/search?view=siblings&type=product&q=${group}`;
+  while (pageNumber) {
+    let result = await fetchJson(url);
+    siblings.push(...result.data);
+    if (result.pageInfo.hasNextPage) {
+      pageNumber++;
+      url = `/search?view=siblings&type=product&q=${group}&page=${pageNumber}`;
+    } else {
+      pageNumber = null;
+    }
+  }
+  return siblings;
 }
 ProductSiblings.fetchSiblings = memoize(fetchSiblings);
 ProductSiblings.fetchHtml = M.fetchHtml;
